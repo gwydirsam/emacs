@@ -226,7 +226,7 @@ ns_get_screen (Lisp_Object screen)
     }
 
   return ((f && FRAME_NS_P (f)) ? [[FRAME_NS_VIEW (f) window] screen]
-	  : NULL);
+          : NULL);
 }
 
 
@@ -707,7 +707,7 @@ x_set_menu_bar_lines (struct frame *f, Lisp_Object value, Lisp_Object oldval)
     {
       FRAME_EXTERNAL_MENU_BAR (f) = 1;
       /* does for all frames, whereas we just want for one frame
-	 [NSMenu setMenuBarVisible: YES]; */
+         [NSMenu setMenuBarVisible: YES]; */
     }
   else
     {
@@ -791,7 +791,7 @@ ns_implicitly_set_icon_type (struct frame *f)
       if (SYMBOLP (elt) && EQ (elt, Qt) && SSDATA (f->name)[0] == '/')
         {
           NSString *str
-	     = [NSString stringWithUTF8String: SSDATA (f->name)];
+             = [NSString stringWithUTF8String: SSDATA (f->name)];
           if ([[NSFileManager defaultManager] fileExistsAtPath: str])
             image = [[[NSWorkspace sharedWorkspace] iconForFile: str] retain];
         }
@@ -804,7 +804,7 @@ ns_implicitly_set_icon_type (struct frame *f)
           if (image == nil)
             image = [[NSImage imageNamed:
                                [NSString stringWithUTF8String:
-					    SSDATA (XCDR (elt))]] retain];
+                                            SSDATA (XCDR (elt))]] retain];
         }
     }
 
@@ -888,10 +888,10 @@ ns_cursor_type_to_lisp (int arg)
     {
     case FILLED_BOX_CURSOR: return Qbox;
     case HOLLOW_BOX_CURSOR: return intern ("hollow");
-    case HBAR_CURSOR:	    return intern ("hbar");
-    case BAR_CURSOR:	    return intern ("bar");
+    case HBAR_CURSOR:       return intern ("hbar");
+    case BAR_CURSOR:        return intern ("bar");
     case NO_CURSOR:
-    default:		    return intern ("no");
+    default:                return intern ("no");
     }
 }
 
@@ -1184,8 +1184,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
   FRAME_FONTSET (f) = -1;
 
   fset_icon_name (f, x_get_arg (dpyinfo, parms, Qicon_name,
-				"iconName", "Title",
-				RES_TYPE_STRING));
+                                "iconName", "Title",
+                                RES_TYPE_STRING));
   if (! STRINGP (f->icon_name))
     fset_icon_name (f, Qnil);
 
@@ -1226,7 +1226,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
   block_input ();
   register_font_driver (&nsfont_driver, f);
   x_default_parameter (f, parms, Qfont_backend, Qnil,
-			"fontBackend", "FontBackend", RES_TYPE_STRING);
+                        "fontBackend", "FontBackend", RES_TYPE_STRING);
 
   {
     /* use for default font name */
@@ -1241,7 +1241,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
   unblock_input ();
 
   x_default_parameter (f, parms, Qborder_width, make_number (0),
-		       "borderwidth", "BorderWidth", RES_TYPE_NUMBER);
+                       "borderwidth", "BorderWidth", RES_TYPE_NUMBER);
   x_default_parameter (f, parms, Qinternal_border_width, make_number (2),
                       "internalBorderWidth", "InternalBorderWidth",
                       RES_TYPE_NUMBER);
@@ -1255,8 +1255,8 @@ This function is an internal primitive--use `make-frame' instead.  */)
           = Qright;
 #endif
       x_default_parameter (f, parms, Qvertical_scroll_bars, spos,
-			   "verticalScrollBars", "VerticalScrollBars",
-			   RES_TYPE_SYMBOL);
+                           "verticalScrollBars", "VerticalScrollBars",
+                           RES_TYPE_SYMBOL);
   }
   x_default_parameter (f, parms, Qforeground_color, build_string ("Black"),
                       "foreground", "Foreground", RES_TYPE_STRING);
@@ -1264,11 +1264,11 @@ This function is an internal primitive--use `make-frame' instead.  */)
                       "background", "Background", RES_TYPE_STRING);
   /* FIXME: not supported yet in Nextstep */
   x_default_parameter (f, parms, Qline_spacing, Qnil,
-		       "lineSpacing", "LineSpacing", RES_TYPE_NUMBER);
+                       "lineSpacing", "LineSpacing", RES_TYPE_NUMBER);
   x_default_parameter (f, parms, Qleft_fringe, Qnil,
-		       "leftFringe", "LeftFringe", RES_TYPE_NUMBER);
+                       "leftFringe", "LeftFringe", RES_TYPE_NUMBER);
   x_default_parameter (f, parms, Qright_fringe, Qnil,
-		       "rightFringe", "RightFringe", RES_TYPE_NUMBER);
+                       "rightFringe", "RightFringe", RES_TYPE_NUMBER);
 
 #ifdef GLYPH_DEBUG
   image_cache_refcount =
@@ -1281,13 +1281,13 @@ This function is an internal primitive--use `make-frame' instead.  */)
      processed specially at startup, and reflected in the mode
      variables; ignore them here.  */
   x_default_parameter (f, parms, Qmenu_bar_lines,
-		       NILP (Vmenu_bar_mode)
-		       ? make_number (0) : make_number (1),
-		       NULL, NULL, RES_TYPE_NUMBER);
+                       NILP (Vmenu_bar_mode)
+                       ? make_number (0) : make_number (1),
+                       NULL, NULL, RES_TYPE_NUMBER);
   x_default_parameter (f, parms, Qtool_bar_lines,
-		       NILP (Vtool_bar_mode)
-		       ? make_number (0) : make_number (1),
-		       NULL, NULL, RES_TYPE_NUMBER);
+                       NILP (Vtool_bar_mode)
+                       ? make_number (0) : make_number (1),
+                       NULL, NULL, RES_TYPE_NUMBER);
 
   x_default_parameter (f, parms, Qbuffer_predicate, Qnil, "bufferPredicate",
                        "BufferPredicate", RES_TYPE_SYMBOL);
@@ -1354,18 +1354,18 @@ This function is an internal primitive--use `make-frame' instead.  */)
       visibility = x_get_arg (dpyinfo, parms, Qvisibility, 0, 0,
                               RES_TYPE_SYMBOL);
       if (EQ (visibility, Qunbound))
-	visibility = Qt;
+        visibility = Qt;
 
       if (EQ (visibility, Qicon))
-	x_iconify_frame (f);
+        x_iconify_frame (f);
       else if (! NILP (visibility))
-	{
-	  x_make_frame_visible (f);
-	  [[FRAME_NS_VIEW (f) window] makeKeyWindow];
-	}
+        {
+          x_make_frame_visible (f);
+          [[FRAME_NS_VIEW (f) window] makeKeyWindow];
+        }
       else
         {
-	  /* Must have been Qnil.  */
+          /* Must have been Qnil.  */
         }
     }
 
@@ -1503,12 +1503,12 @@ Optional arg DIR_ONLY_P, if non-nil, means choose only directories.  */)
   [panel setDelegate: fileDelegate];
 
   panelOK = 0;
-  if (! NILP (dir_only_p)) 
+  if (! NILP (dir_only_p))
     {
       [panel setCanChooseDirectories: YES];
       [panel setCanChooseFiles: NO];
     }
-  
+
   block_input ();
 #if defined (NS_IMPL_COCOA) && \
   MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
@@ -1519,7 +1519,7 @@ Optional arg DIR_ONLY_P, if non-nil, means choose only directories.  */)
     [panel setNameFieldStringValue: [initS lastPathComponent]];
   else
     [panel setNameFieldStringValue: @""];
-    
+
   ret = [panel runModal];
 #else
   if (NILP (mustmatch) && NILP (dir_only_p))
@@ -1650,8 +1650,8 @@ If omitted or nil, that stands for the selected frame's display.  */)
           and GNUstep implementations ("distributor-specific release
           number") and give int'ized versions of major.minor. */
   return Fcons (make_number (10),
-		Fcons (make_number (3),
-		       Fcons (make_number (ns_appkit_version_int()), Qnil)));
+                Fcons (make_number (3),
+                       Fcons (make_number (ns_appkit_version_int()), Qnil)));
 }
 
 
@@ -2056,7 +2056,7 @@ ns_do_applescript (Lisp_Object script, Lisp_Object *result)
 
   NSAppleScript* scriptObject =
     [[NSAppleScript alloc] initWithSource:
-			     [NSString stringWithUTF8String: SSDATA (script)]];
+                             [NSString stringWithUTF8String: SSDATA (script)]];
 
   returnDescriptor = [scriptObject executeAndReturnError: &errorDict];
   [scriptObject release];
@@ -2068,27 +2068,27 @@ ns_do_applescript (Lisp_Object script, Lisp_Object *result)
       // successful execution
       if (kAENullEvent != [returnDescriptor descriptorType])
         {
-	  *result = Qt;
-	  // script returned an AppleScript result
-	  if ((typeUnicodeText == [returnDescriptor descriptorType]) ||
+          *result = Qt;
+          // script returned an AppleScript result
+          if ((typeUnicodeText == [returnDescriptor descriptorType]) ||
 #if defined (NS_IMPL_COCOA)
-	      (typeUTF16ExternalRepresentation
-	       == [returnDescriptor descriptorType]) ||
+              (typeUTF16ExternalRepresentation
+               == [returnDescriptor descriptorType]) ||
 #endif
-	      (typeUTF8Text == [returnDescriptor descriptorType]) ||
-	      (typeCString == [returnDescriptor descriptorType]))
-	    {
-	      desc = [returnDescriptor coerceToDescriptorType: typeUTF8Text];
-	      if (desc)
-		*result = build_string([[desc stringValue] UTF8String]);
-	    }
-	  else
+              (typeUTF8Text == [returnDescriptor descriptorType]) ||
+              (typeCString == [returnDescriptor descriptorType]))
             {
-	      /* use typeUTF16ExternalRepresentation? */
-	      // coerce the result to the appropriate ObjC type
-	      desc = [returnDescriptor coerceToDescriptorType: typeUTF8Text];
-	      if (desc)
-		*result = make_number([desc int32Value]);
+              desc = [returnDescriptor coerceToDescriptorType: typeUTF8Text];
+              if (desc)
+                *result = build_string([[desc stringValue] UTF8String]);
+            }
+          else
+            {
+              /* use typeUTF16ExternalRepresentation? */
+              // coerce the result to the appropriate ObjC type
+              desc = [returnDescriptor coerceToDescriptorType: typeUTF8Text];
+              if (desc)
+                *result = make_number([desc int32Value]);
             }
         }
     }
@@ -2306,8 +2306,8 @@ DEFUN ("xw-color-values", Fxw_color_values, Sxw_color_values, 1, 2, 0,
   [[col colorUsingColorSpaceName: NSCalibratedRGBColorSpace]
         getRed: &red green: &green blue: &blue alpha: &alpha];
   return list3 (make_number (lrint (red*65280)),
-		make_number (lrint (green*65280)),
-		make_number (lrint (blue*65280)));
+                make_number (lrint (green*65280)),
+                make_number (lrint (blue*65280)));
 }
 
 
@@ -2395,8 +2395,8 @@ that stands for the selected frame's display. */)
   /* NS coordinate system is upside-down.
      Transform to screen-specific coordinates. */
   return list4 (make_number ((int) vScreen.origin.x),
-		make_number ((int) [screen frame].size.height
-			     - vScreen.size.height - vScreen.origin.y),
+                make_number ((int) [screen frame].size.height
+                             - vScreen.size.height - vScreen.origin.y),
                 make_number ((int) vScreen.size.width),
                 make_number ((int) vScreen.size.height));
 }
@@ -2476,7 +2476,7 @@ compute_tip_xy (struct frame *f,
   else if (pt.x + XINT (dx) <= 0)
     *root_x = 0; /* Can happen for negative dx */
   else if (pt.x + XINT (dx) + width
-	   <= x_display_pixel_width (FRAME_NS_DISPLAY_INFO (f)))
+           <= x_display_pixel_width (FRAME_NS_DISPLAY_INFO (f)))
     /* It fits to the right of the pointer.  */
     *root_x = pt.x + XINT (dx);
   else if (width + XINT (dx) <= pt.x)
@@ -2492,7 +2492,7 @@ compute_tip_xy (struct frame *f,
     /* It fits below the pointer.  */
     *root_y = pt.y - height - XINT (dy);
   else if (pt.y + XINT (dy) + height
-	   <= x_display_pixel_height (FRAME_NS_DISPLAY_INFO (f)))
+           <= x_display_pixel_height (FRAME_NS_DISPLAY_INFO (f)))
     /* It fits above the pointer */
       *root_y = pt.y + XINT (dy);
   else
@@ -2568,7 +2568,7 @@ Text larger than the specified size is clipped.  */)
   /* Move the tooltip window where the mouse pointer is.  Resize and
      show it.  */
   compute_tip_xy (f, parms, dx, dy, (int)size.width, (int)size.height,
-		  &root_x, &root_y);
+                  &root_x, &root_y);
 
   [ns_tooltip showAtX: root_x Y: root_y for: XINT (timeout)];
   unblock_input ();
@@ -2589,10 +2589,24 @@ Value is t if tooltip was open, nil otherwise.  */)
   return Qt;
 }
 
+DEFUN ("ns-toggle-fullscreen-internal", Fns_toggle_fullscreen_internal, Sns_toggle_fullscreen_internal, 0, 0, 0,
+       doc: /* Toggle fulscreen mode */)
+     (void)
+{
+  struct frame *f = SELECTED_FRAME();
+  EmacsWindow *window = ns_get_window(f);
+
+#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
+  [window toggleFullScreen:nil];
+#endif
+
+  return Qnil;
+}
+
 
 /* ==========================================================================
 
-    Class implementations
+   Class implementations
 
    ========================================================================== */
 
@@ -2665,7 +2679,7 @@ Value is t if tooltip was open, nil otherwise.  */)
 
 /* ==========================================================================
 
-    Lisp interface declaration
+   Lisp interface declaration
 
    ========================================================================== */
 
@@ -2678,23 +2692,23 @@ syms_of_nsfns (void)
 
   DEFVAR_LISP ("ns-icon-type-alist", Vns_icon_type_alist,
                doc: /* Alist of elements (REGEXP . IMAGE) for images of icons associated to frames.
-If the title of a frame matches REGEXP, then IMAGE.tiff is
-selected as the image of the icon representing the frame when it's
-miniaturized.  If an element is t, then Emacs tries to select an icon
-based on the filetype of the visited file.
+                       If the title of a frame matches REGEXP, then IMAGE.tiff is
+                       selected as the image of the icon representing the frame when it's
+                       miniaturized.  If an element is t, then Emacs tries to select an icon
+                       based on the filetype of the visited file.
 
-The images have to be installed in a folder called English.lproj in the
-Emacs folder.  You have to restart Emacs after installing new icons.
+                       The images have to be installed in a folder called English.lproj in the
+                       Emacs folder.  You have to restart Emacs after installing new icons.
 
-Example: Install an icon Gnus.tiff and execute the following code
+                       Example: Install an icon Gnus.tiff and execute the following code
 
-  (setq ns-icon-type-alist
-        (append ns-icon-type-alist
-                '((\"^\\\\*\\\\(Group\\\\*$\\\\|Summary \\\\|Article\\\\*$\\\\)\"
-                   . \"Gnus\"))))
+                       (setq ns-icon-type-alist
+                       (append ns-icon-type-alist
+                       '((\"^\\\\*\\\\(Group\\\\*$\\\\|Summary \\\\|Article\\\\*$\\\\)\"
+                       . \"Gnus\"))))
 
-When you miniaturize a Group, Summary or Article frame, Gnus.tiff will
-be used as the image of the icon representing the frame.  */);
+                       When you miniaturize a Group, Summary or Article frame, Gnus.tiff will
+                       be used as the image of the icon representing the frame.  */);
   Vns_icon_type_alist = Fcons (Qt, Qnil);
 
   DEFVAR_LISP ("ns-version-string", Vns_version_string,
@@ -2741,6 +2755,7 @@ be used as the image of the icon representing the frame.  */);
   defsubr (&Sx_focus_frame);
   defsubr (&Sns_popup_font_panel);
   defsubr (&Sns_popup_color_panel);
+  defsubr (&Sns_toggle_fullscreen_internal);
 
   defsubr (&Sx_show_tip);
   defsubr (&Sx_hide_tip);

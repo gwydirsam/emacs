@@ -188,7 +188,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       ptrdiff_t specpdl_count = SPECPDL_INDEX ();
       int previous_menu_items_used = f->menu_bar_items_used;
       Lisp_Object *previous_items
-	= alloca (previous_menu_items_used * sizeof *previous_items);
+        = alloca (previous_menu_items_used * sizeof *previous_items);
 
       /* lisp preliminaries */
       buffer = XWINDOW (FRAME_SELECTED_WINDOW (f))->buffer;
@@ -196,10 +196,10 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       specbind (Qdebug_on_next_call, Qnil);
       record_unwind_save_match_data ();
       if (NILP (Voverriding_local_map_menu_flag))
-	{
-	  specbind (Qoverriding_terminal_local_map, Qnil);
-	  specbind (Qoverriding_local_map, Qnil);
-	}
+        {
+          specbind (Qoverriding_terminal_local_map, Qnil);
+          specbind (Qoverriding_local_map, Qnil);
+        }
       set_buffer_internal_1 (XBUFFER (buffer));
 
       /* TODO: for some reason this is not needed in other terms,
@@ -211,7 +211,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       /* lucid hook and possible reset */
       safe_run_hooks (Qactivate_menubar_hook);
       if (! NILP (Vlucid_menu_bar_dirty_flag))
-	call0 (Qrecompute_lucid_menubar);
+        call0 (Qrecompute_lucid_menubar);
       safe_run_hooks (Qmenu_bar_update_hook);
       fset_menu_bar_items (f, menu_bar_items (FRAME_MENU_BAR_ITEMS (f)));
 
@@ -220,8 +220,8 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
 
       /* Save the frame's previous menu bar contents data */
       if (previous_menu_items_used)
-	memcpy (previous_items, aref_addr (f->menu_bar_vector, 0),
-		previous_menu_items_used * sizeof (Lisp_Object));
+        memcpy (previous_items, aref_addr (f->menu_bar_vector, 0),
+                previous_menu_items_used * sizeof (Lisp_Object));
 
       /* parse stage 1: extract from lisp */
       save_menu_items ();
@@ -232,17 +232,17 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       submenu_end = alloca (ASIZE (items) * sizeof *submenu_end);
       submenu_n_panes = alloca (ASIZE (items) * sizeof *submenu_n_panes);
       submenu_top_level_items = alloca (ASIZE (items)
-					* sizeof *submenu_top_level_items);
+                                        * sizeof *submenu_top_level_items);
       init_menu_items ();
       for (i = 0; i < ASIZE (items); i += 4)
-	{
-	  Lisp_Object key, string, maps;
+        {
+          Lisp_Object key, string, maps;
 
-	  key = AREF (items, i);
-	  string = AREF (items, i + 1);
-	  maps = AREF (items, i + 2);
-	  if (NILP (string))
-	    break;
+          key = AREF (items, i);
+          string = AREF (items, i + 1);
+          maps = AREF (items, i + 2);
+          if (NILP (string))
+            break;
 
           /* FIXME: we'd like to only parse the needed submenu, but this
                was causing crashes in the _common parsing code.. need to make
@@ -250,14 +250,14 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
 /*        if (submenu && strcmp (submenuTitle, SSDATA (string)))
              continue; */
 
-	  submenu_start[i] = menu_items_used;
+          submenu_start[i] = menu_items_used;
 
-	  menu_items_n_panes = 0;
-	  submenu_top_level_items[i] = parse_single_submenu (key, string, maps);
-	  submenu_n_panes[i] = menu_items_n_panes;
-	  submenu_end[i] = menu_items_used;
+          menu_items_n_panes = 0;
+          submenu_top_level_items[i] = parse_single_submenu (key, string, maps);
+          submenu_n_panes[i] = menu_items_n_panes;
+          submenu_end[i] = menu_items_used;
           n++;
-	}
+        }
 
       finish_menu_items ();
       waiting_for_input = owfi;
@@ -268,11 +268,11 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
           /* should have found a menu for this one but didn't */
           fprintf (stderr, "ERROR: did not find lisp menu for submenu '%s'.\n",
                   submenuTitle);
-	  discard_menu_items ();
-	  unbind_to (specpdl_count, Qnil);
+          discard_menu_items ();
+          unbind_to (specpdl_count, Qnil);
           [pool release];
           unblock_input ();
-	  return;
+          return;
         }
 
       /* parse stage 2: insert into lucid 'widget_value' structures
@@ -286,19 +286,19 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
       first_wv = wv;
 
       for (i = 0; i < 4*n; i += 4)
-	{
-	  menu_items_n_panes = submenu_n_panes[i];
-	  wv = digest_single_submenu (submenu_start[i], submenu_end[i],
-				      submenu_top_level_items[i]);
-	  if (prev_wv)
-	    prev_wv->next = wv;
-	  else
-	    first_wv->contents = wv;
-	  /* Don't set wv->name here; GC during the loop might relocate it.  */
-	  wv->enabled = 1;
-	  wv->button_type = BUTTON_TYPE_NONE;
-	  prev_wv = wv;
-	}
+        {
+          menu_items_n_panes = submenu_n_panes[i];
+          wv = digest_single_submenu (submenu_start[i], submenu_end[i],
+                                      submenu_top_level_items[i]);
+          if (prev_wv)
+            prev_wv->next = wv;
+          else
+            first_wv->contents = wv;
+          /* Don't set wv->name here; GC during the loop might relocate it.  */
+          wv->enabled = 1;
+          wv->button_type = BUTTON_TYPE_NONE;
+          prev_wv = wv;
+        }
 
       set_buffer_internal_1 (prev);
 
@@ -317,7 +317,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
               if (!(STRINGP (previous_items[i])
                     && STRINGP (AREF (menu_items, i))
                     && !strcmp (SSDATA (previous_items[i]),
-				SSDATA (AREF (menu_items, i)))))
+                                SSDATA (AREF (menu_items, i)))))
                   break;
           if (i == previous_menu_items_used)
             {
@@ -349,18 +349,18 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
          widget_value, so it's safe to store data from a Lisp_String */
       wv = first_wv->contents;
       for (i = 0; i < ASIZE (items); i += 4)
-	{
-	  Lisp_Object string;
-	  string = AREF (items, i + 1);
-	  if (NILP (string))
-	    break;
+        {
+          Lisp_Object string;
+          string = AREF (items, i + 1);
+          if (NILP (string))
+            break;
 /*           if (submenu && strcmp (submenuTitle, SSDATA (string)))
                continue; */
 
-	  wv->name = SSDATA (string);
+          wv->name = SSDATA (string);
           update_submenu_strings (wv->contents);
-	  wv = wv->next;
-	}
+          wv = wv->next;
+        }
 
       /* Now, update the NS menu; if we have a submenu, use that, otherwise
          create a new menu for each sub and fill it. */
@@ -415,7 +415,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
         {
           for (i = 0; i<n; i++)
             {
-	      string = AREF (items, 4*i+1);
+              string = AREF (items, 4*i+1);
 
               if (EQ (string, make_number (0))) // FIXME: Why???  --Stef
                 continue;
@@ -427,7 +427,7 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
                     continue;
                 }
               else if (memcmp (previous_strings[i], SDATA (string),
-			  min (10, SBYTES (string) + 1)))
+                          min (10, SBYTES (string) + 1)))
                 break;
             }
 
@@ -442,22 +442,22 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
 
       [menu clear];
       for (i = 0; i < ASIZE (items); i += 4)
-	{
-	  string = AREF (items, i + 1);
-	  if (NILP (string))
-	    break;
+        {
+          string = AREF (items, i + 1);
+          if (NILP (string))
+            break;
 
           if (n < 100)
-	    memcpy (previous_strings[i/4], SDATA (string),
+            memcpy (previous_strings[i/4], SDATA (string),
                     min (10, SBYTES (string) + 1));
 
-	  wv = xmalloc_widget_value ();
-	  wv->name = SSDATA (string);
-	  wv->value = 0;
-	  wv->enabled = 1;
-	  wv->button_type = BUTTON_TYPE_NONE;
-	  wv->help = Qnil;
-	  wv->call_data = (void *) (intptr_t) (-1);
+          wv = xmalloc_widget_value ();
+          wv->name = SSDATA (string);
+          wv->value = 0;
+          wv->enabled = 1;
+          wv->button_type = BUTTON_TYPE_NONE;
+          wv->help = Qnil;
+          wv->call_data = (void *) (intptr_t) (-1);
 
 #ifdef NS_IMPL_COCOA
           /* we'll update the real copy under app menu when time comes */
@@ -470,12 +470,12 @@ ns_update_menubar (struct frame *f, bool deep_p, EmacsMenu *submenu)
 #endif
           [menu addSubmenuWithTitle: wv->name forFrame: f];
 
-	  if (prev_wv)
-	    prev_wv->next = wv;
-	  else
-	    first_wv->contents = wv;
-	  prev_wv = wv;
-	}
+          if (prev_wv)
+            prev_wv->next = wv;
+          else
+            first_wv->contents = wv;
+          prev_wv = wv;
+        }
 
       last_f = f;
       if (n < 100)
@@ -685,8 +685,8 @@ extern NSString *NSMenuDidBeginTrackingNotification;
       NSMenuItem *item = [self itemAtIndex: n];
       NSString *title = [item title];
       if (([title length] == 0  /* OSX 10.5 */
-	   || [ns_app_name isEqualToString: title]  /* from 10.6 on */
-	   || [@"Apple" isEqualToString: title]) /* older */
+           || [ns_app_name isEqualToString: title]  /* from 10.6 on */
+           || [@"Apple" isEqualToString: title]) /* older */
           && ![item isSeparatorItem])
         continue;
       [self removeItemAtIndex: n];
@@ -781,7 +781,7 @@ extern NSString *NSMenuDidBeginTrackingNotification;
 
 Lisp_Object
 ns_menu_show (FRAME_PTR f, int x, int y, bool for_click, bool keymaps,
-	      Lisp_Object title, const char **error)
+              Lisp_Object title, const char **error)
 {
   EmacsMenu *pmenu;
   NSPoint p;
@@ -819,139 +819,139 @@ ns_menu_show (FRAME_PTR f, int x, int y, bool for_click, bool keymaps,
   while (i < menu_items_used)
     {
       if (EQ (AREF (menu_items, i), Qnil))
-	{
-	  submenu_stack[submenu_depth++] = save_wv;
-	  save_wv = prev_wv;
-	  prev_wv = 0;
-	  first_pane = 1;
-	  i++;
-	}
+        {
+          submenu_stack[submenu_depth++] = save_wv;
+          save_wv = prev_wv;
+          prev_wv = 0;
+          first_pane = 1;
+          i++;
+        }
       else if (EQ (AREF (menu_items, i), Qlambda))
-	{
-	  prev_wv = save_wv;
-	  save_wv = submenu_stack[--submenu_depth];
-	  first_pane = 0;
-	  i++;
-	}
+        {
+          prev_wv = save_wv;
+          save_wv = submenu_stack[--submenu_depth];
+          first_pane = 0;
+          i++;
+        }
       else if (EQ (AREF (menu_items, i), Qt)
-	       && submenu_depth != 0)
-	i += MENU_ITEMS_PANE_LENGTH;
+               && submenu_depth != 0)
+        i += MENU_ITEMS_PANE_LENGTH;
       /* Ignore a nil in the item list.
-	 It's meaningful only for dialog boxes.  */
+         It's meaningful only for dialog boxes.  */
       else if (EQ (AREF (menu_items, i), Qquote))
-	i += 1;
+        i += 1;
       else if (EQ (AREF (menu_items, i), Qt))
-	{
-	  /* Create a new pane.  */
-	  Lisp_Object pane_name, prefix;
-	  const char *pane_string;
+        {
+          /* Create a new pane.  */
+          Lisp_Object pane_name, prefix;
+          const char *pane_string;
 
-	  pane_name = AREF (menu_items, i + MENU_ITEMS_PANE_NAME);
-	  prefix = AREF (menu_items, i + MENU_ITEMS_PANE_PREFIX);
+          pane_name = AREF (menu_items, i + MENU_ITEMS_PANE_NAME);
+          prefix = AREF (menu_items, i + MENU_ITEMS_PANE_PREFIX);
 
 #ifndef HAVE_MULTILINGUAL_MENU
-	  if (STRINGP (pane_name) && STRING_MULTIBYTE (pane_name))
-	    {
-	      pane_name = ENCODE_MENU_STRING (pane_name);
-	      ASET (menu_items, i + MENU_ITEMS_PANE_NAME, pane_name);
-	    }
+          if (STRINGP (pane_name) && STRING_MULTIBYTE (pane_name))
+            {
+              pane_name = ENCODE_MENU_STRING (pane_name);
+              ASET (menu_items, i + MENU_ITEMS_PANE_NAME, pane_name);
+            }
 #endif
-	  pane_string = (NILP (pane_name)
-			 ? "" : SSDATA (pane_name));
-	  /* If there is just one top-level pane, put all its items directly
-	     under the top-level menu.  */
-	  if (menu_items_n_panes == 1)
-	    pane_string = "";
+          pane_string = (NILP (pane_name)
+                         ? "" : SSDATA (pane_name));
+          /* If there is just one top-level pane, put all its items directly
+             under the top-level menu.  */
+          if (menu_items_n_panes == 1)
+            pane_string = "";
 
-	  /* If the pane has a meaningful name,
-	     make the pane a top-level menu item
-	     with its items as a submenu beneath it.  */
-	  if (!keymaps && strcmp (pane_string, ""))
-	    {
-	      wv = xmalloc_widget_value ();
-	      if (save_wv)
-		save_wv->next = wv;
-	      else
-		first_wv->contents = wv;
-	      wv->name = pane_string;
-	      if (keymaps && !NILP (prefix))
-		wv->name++;
-	      wv->value = 0;
-	      wv->enabled = 1;
-	      wv->button_type = BUTTON_TYPE_NONE;
-	      wv->help = Qnil;
-	      save_wv = wv;
-	      prev_wv = 0;
-	    }
-	  else if (first_pane)
-	    {
-	      save_wv = wv;
-	      prev_wv = 0;
-	    }
-	  first_pane = 0;
-	  i += MENU_ITEMS_PANE_LENGTH;
-	}
+          /* If the pane has a meaningful name,
+             make the pane a top-level menu item
+             with its items as a submenu beneath it.  */
+          if (!keymaps && strcmp (pane_string, ""))
+            {
+              wv = xmalloc_widget_value ();
+              if (save_wv)
+                save_wv->next = wv;
+              else
+                first_wv->contents = wv;
+              wv->name = pane_string;
+              if (keymaps && !NILP (prefix))
+                wv->name++;
+              wv->value = 0;
+              wv->enabled = 1;
+              wv->button_type = BUTTON_TYPE_NONE;
+              wv->help = Qnil;
+              save_wv = wv;
+              prev_wv = 0;
+            }
+          else if (first_pane)
+            {
+              save_wv = wv;
+              prev_wv = 0;
+            }
+          first_pane = 0;
+          i += MENU_ITEMS_PANE_LENGTH;
+        }
       else
-	{
-	  /* Create a new item within current pane.  */
-	  Lisp_Object item_name, enable, descrip, def, type, selected, help;
-	  item_name = AREF (menu_items, i + MENU_ITEMS_ITEM_NAME);
-	  enable = AREF (menu_items, i + MENU_ITEMS_ITEM_ENABLE);
-	  descrip = AREF (menu_items, i + MENU_ITEMS_ITEM_EQUIV_KEY);
-	  def = AREF (menu_items, i + MENU_ITEMS_ITEM_DEFINITION);
-	  type = AREF (menu_items, i + MENU_ITEMS_ITEM_TYPE);
-	  selected = AREF (menu_items, i + MENU_ITEMS_ITEM_SELECTED);
-	  help = AREF (menu_items, i + MENU_ITEMS_ITEM_HELP);
+        {
+          /* Create a new item within current pane.  */
+          Lisp_Object item_name, enable, descrip, def, type, selected, help;
+          item_name = AREF (menu_items, i + MENU_ITEMS_ITEM_NAME);
+          enable = AREF (menu_items, i + MENU_ITEMS_ITEM_ENABLE);
+          descrip = AREF (menu_items, i + MENU_ITEMS_ITEM_EQUIV_KEY);
+          def = AREF (menu_items, i + MENU_ITEMS_ITEM_DEFINITION);
+          type = AREF (menu_items, i + MENU_ITEMS_ITEM_TYPE);
+          selected = AREF (menu_items, i + MENU_ITEMS_ITEM_SELECTED);
+          help = AREF (menu_items, i + MENU_ITEMS_ITEM_HELP);
 
 #ifndef HAVE_MULTILINGUAL_MENU
           if (STRINGP (item_name) && STRING_MULTIBYTE (item_name))
-	    {
-	      item_name = ENCODE_MENU_STRING (item_name);
-	      ASET (menu_items, i + MENU_ITEMS_ITEM_NAME, item_name);
-	    }
+            {
+              item_name = ENCODE_MENU_STRING (item_name);
+              ASET (menu_items, i + MENU_ITEMS_ITEM_NAME, item_name);
+            }
 
           if (STRINGP (descrip) && STRING_MULTIBYTE (descrip))
-	    {
-	      descrip = ENCODE_MENU_STRING (descrip);
-	      ASET (menu_items, i + MENU_ITEMS_ITEM_EQUIV_KEY, descrip);
-	    }
+            {
+              descrip = ENCODE_MENU_STRING (descrip);
+              ASET (menu_items, i + MENU_ITEMS_ITEM_EQUIV_KEY, descrip);
+            }
 #endif /* not HAVE_MULTILINGUAL_MENU */
 
-	  wv = xmalloc_widget_value ();
-	  if (prev_wv)
-	    prev_wv->next = wv;
-	  else
-	    save_wv->contents = wv;
-	  wv->name = SSDATA (item_name);
-	  if (!NILP (descrip))
-	    wv->key = SSDATA (descrip);
-	  wv->value = 0;
-	  /* If this item has a null value,
-	     make the call_data null so that it won't display a box
-	     when the mouse is on it.  */
-	  wv->call_data = !NILP (def) ? aref_addr (menu_items, i) : 0;
-	  wv->enabled = !NILP (enable);
+          wv = xmalloc_widget_value ();
+          if (prev_wv)
+            prev_wv->next = wv;
+          else
+            save_wv->contents = wv;
+          wv->name = SSDATA (item_name);
+          if (!NILP (descrip))
+            wv->key = SSDATA (descrip);
+          wv->value = 0;
+          /* If this item has a null value,
+             make the call_data null so that it won't display a box
+             when the mouse is on it.  */
+          wv->call_data = !NILP (def) ? aref_addr (menu_items, i) : 0;
+          wv->enabled = !NILP (enable);
 
-	  if (NILP (type))
-	    wv->button_type = BUTTON_TYPE_NONE;
-	  else if (EQ (type, QCtoggle))
-	    wv->button_type = BUTTON_TYPE_TOGGLE;
-	  else if (EQ (type, QCradio))
-	    wv->button_type = BUTTON_TYPE_RADIO;
-	  else
-	    emacs_abort ();
+          if (NILP (type))
+            wv->button_type = BUTTON_TYPE_NONE;
+          else if (EQ (type, QCtoggle))
+            wv->button_type = BUTTON_TYPE_TOGGLE;
+          else if (EQ (type, QCradio))
+            wv->button_type = BUTTON_TYPE_RADIO;
+          else
+            emacs_abort ();
 
-	  wv->selected = !NILP (selected);
+          wv->selected = !NILP (selected);
 
           if (! STRINGP (help))
-	    help = Qnil;
+            help = Qnil;
 
-	  wv->help = help;
+          wv->help = help;
 
-	  prev_wv = wv;
+          prev_wv = wv;
 
-	  i += MENU_ITEMS_ITEM_LENGTH;
-	}
+          i += MENU_ITEMS_ITEM_LENGTH;
+        }
     }
   }
 #endif
@@ -962,14 +962,14 @@ ns_menu_show (FRAME_PTR f, int x, int y, bool for_click, bool keymaps,
       widget_value *wv_sep = xmalloc_widget_value ();
 
       /* Maybe replace this separator with a bitmap or owner-draw item
-	 so that it looks better.  Having two separators looks odd.  */
+         so that it looks better.  Having two separators looks odd.  */
       wv_sep->name = "--";
       wv_sep->next = first_wv->contents;
       wv_sep->help = Qnil;
 
 #ifndef HAVE_MULTILINGUAL_MENU
       if (STRING_MULTIBYTE (title))
-	title = ENCODE_MENU_STRING (title);
+        title = ENCODE_MENU_STRING (title);
 #endif
 
       wv_title->name = SSDATA (title);
@@ -1009,6 +1009,7 @@ free_frame_tool_bar (FRAME_PTR f)
 {
   block_input ();
   [[FRAME_NS_VIEW (f) toolbar] setVisible: NO];
+  // [[FRAME_NS_VIEW (f) window] setToolbar: nil];
   FRAME_TOOLBAR_HEIGHT (f) = 0;
   unblock_input ();
 }
@@ -1025,6 +1026,8 @@ update_frame_tool_bar (FRAME_PTR f)
   EmacsToolbar *toolbar = [view toolbar];
 
   block_input ();
+  // [window setToolbar: toolbar];
+
   [toolbar clearActive];
 
   /* update EmacsToolbar as in GtkUtils, build items list */
@@ -1042,15 +1045,15 @@ update_frame_tool_bar (FRAME_PTR f)
       const char *helpText;
 
       /* If image is a vector, choose the image according to the
-	 button state.  */
+         button state.  */
       image = TOOLPROP (TOOL_BAR_ITEM_IMAGES);
       if (VECTORP (image))
-	{
+        {
           /* NS toolbar auto-computes disabled and selected images */
           idx = TOOL_BAR_IMAGE_ENABLED_SELECTED;
-	  eassert (ASIZE (image) >= idx);
-	  image = AREF (image, idx);
-	}
+          eassert (ASIZE (image) >= idx);
+          image = AREF (image, idx);
+        }
       else
         {
           idx = -1;
@@ -1083,7 +1086,7 @@ update_frame_tool_bar (FRAME_PTR f)
     }
 
   if (![toolbar isVisible])
-      [toolbar setVisible: YES];
+      [toolbar setVisible: NO];
 
   if ([toolbar changed])
     {
@@ -1398,7 +1401,7 @@ ns_popup_dialog (Lisp_Object position, Lisp_Object contents, Lisp_Object header)
       else
         {
           tem = Fcar (Fcdr (position));  /* EVENT_START (position) */
-          window = Fcar (tem);	     /* POSN_WINDOW (tem) */
+          window = Fcar (tem);       /* POSN_WINDOW (tem) */
         }
     }
   else if (WINDOWP (position) || FRAMEP (position))

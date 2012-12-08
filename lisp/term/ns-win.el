@@ -81,17 +81,17 @@ Returns an alist of the form ((top . TOP), (left . LEFT) ... ).
 The properties returned may include `top', `left', `height', and `width'."
   (when (string-match "\\([0-9]+\\)\\( \\([0-9]+\\)\\( \\([0-9]+\\)\
 \\( \\([0-9]+\\) ?\\)?\\)?\\)?"
-		      geom)
+                      geom)
     (apply
      'append
      (list
       (list (cons 'top (string-to-number (match-string 1 geom))))
       (if (match-string 3 geom)
-	  (list (cons 'left (string-to-number (match-string 3 geom)))))
+          (list (cons 'left (string-to-number (match-string 3 geom)))))
       (if (match-string 5 geom)
-	  (list (cons 'height (string-to-number (match-string 5 geom)))))
+          (list (cons 'height (string-to-number (match-string 5 geom)))))
       (if (match-string 7 geom)
-	  (list (cons 'width (string-to-number (match-string 7 geom)))))))))
+          (list (cons 'width (string-to-number (match-string 7 geom)))))))))
 
 ;;;; Keyboard mapping.
 
@@ -192,8 +192,8 @@ The properties returned may include `top', `left', `height', and `width'."
 
 (defun ns-define-service (path)
   (let ((mapping [menu-bar services])
-	(service (mapconcat 'identity path "/"))
-	(name (intern
+        (service (mapconcat 'identity path "/"))
+        (name (intern
                (subst-char-in-string
                 ?\s ?-
                 (mapconcat 'identity (cons "ns-service" path) "-")))))
@@ -216,11 +216,11 @@ The properties returned may include `top', `left', `height', and `width'."
     (cond
      ((lookup-key global-map mapping)
       (while (cdr path)
-	(setq mapping (vconcat mapping (list (intern (car path)))))
-	(if (not (keymapp (lookup-key global-map mapping)))
-	    (define-key global-map mapping
-	      (cons (car path) (make-sparse-keymap (car path)))))
-	(setq path (cdr path)))
+        (setq mapping (vconcat mapping (list (intern (car path)))))
+        (if (not (keymapp (lookup-key global-map mapping)))
+            (define-key global-map mapping
+              (cons (car path) (make-sparse-keymap (car path)))))
+        (setq path (cdr path)))
       (setq mapping (vconcat mapping (list (intern (car path)))))
       (define-key global-map mapping (cons (car path) name))))
     name))
@@ -235,18 +235,18 @@ The properties returned may include `top', `left', `height', and `width'."
   "Respond to a service request."
   (interactive)
   (cond ((string-equal ns-input-spi-name "open-selection")
-	 (switch-to-buffer (generate-new-buffer "*untitled*"))
-	 (insert ns-input-spi-arg))
-	((string-equal ns-input-spi-name "open-file")
-	 (dnd-open-file ns-input-spi-arg nil))
-	((string-equal ns-input-spi-name "mail-selection")
-	 (compose-mail)
-	 (rfc822-goto-eoh)
-	 (forward-line 1)
-	 (insert ns-input-spi-arg))
-	((string-equal ns-input-spi-name "mail-to")
-	 (compose-mail ns-input-spi-arg))
-	(t (error (concat "Service " ns-input-spi-name " not recognized")))))
+         (switch-to-buffer (generate-new-buffer "*untitled*"))
+         (insert ns-input-spi-arg))
+        ((string-equal ns-input-spi-name "open-file")
+         (dnd-open-file ns-input-spi-arg nil))
+        ((string-equal ns-input-spi-name "mail-selection")
+         (compose-mail)
+         (rfc822-goto-eoh)
+         (forward-line 1)
+         (insert ns-input-spi-arg))
+        ((string-equal ns-input-spi-name "mail-to")
+         (compose-mail ns-input-spi-arg))
+        (t (error (concat "Service " ns-input-spi-name " not recognized")))))
 
 
 ;; Composed key sequence handling for Nextstep system input methods.
@@ -276,12 +276,12 @@ is currently being used."
       ;; Overlay strings are not shown in some cases.
       (get-char-property (point) 'invisible)
       (and (not (bobp))
-	   (or (and (get-char-property (point) 'display)
-		    (eq (get-char-property (1- (point)) 'display)
-			(get-char-property (point) 'display)))
-	       (and (get-char-property (point) 'composition)
-		    (eq (get-char-property (1- (point)) 'composition)
-			(get-char-property (point) 'composition)))))))
+           (or (and (get-char-property (point) 'display)
+                    (eq (get-char-property (1- (point)) 'display)
+                        (get-char-property (point) 'display)))
+               (and (get-char-property (point) 'composition)
+                    (eq (get-char-property (1- (point)) 'composition)
+                        (get-char-property (point) 'composition)))))))
 
 ;; The 'interactive' here stays for subinvocations, so the ns-in-echo-area
 ;; always returns nil for some reason.  If this WASN'T the case, we could
@@ -305,20 +305,20 @@ The overlay is assigned the face `ns-working-text-face'."
   (let ((start (point)))
     (insert ns-working-text)
     (overlay-put (setq ns-working-overlay (make-overlay start (point)
-							(current-buffer) nil t))
-		 'face 'ns-working-text-face)))
+                                                        (current-buffer) nil t))
+                 'face 'ns-working-text-face)))
 
 (defun ns-echo-working-text ()
   "Echo contents of `ns-working-text' in message display area.
 See `ns-insert-working-text'."
   (ns-delete-working-text)
   (let* ((msg (current-message))
-	 (msglen (length msg))
-	 message-log-max)
+         (msglen (length msg))
+         message-log-max)
     (setq ns-working-overlay (length ns-working-text))
     (setq msg (concat msg ns-working-text))
     (put-text-property msglen (+ msglen ns-working-overlay)
-		       'face 'ns-working-text-face msg)
+                       'face 'ns-working-text-face msg)
     (message "%s" msg)))
 
 (defun ns-delete-working-text()
@@ -387,7 +387,7 @@ prompting.  If file is a directory perform a `find-file' on it."
   "Overlay used to highlight areas in files requested by Nextstep apps.")
 (make-variable-buffer-local 'ns-select-overlay)
 
-(defvar ns-input-line) 			; nsterm.m
+(defvar ns-input-line)                  ; nsterm.m
 
 (defun ns-open-file-select-line ()
   "Open a buffer containing the file `ns-input-file'.
@@ -448,7 +448,7 @@ Lines are highlighted according to `ns-input-line'."
 ;; nsterm.m
 
 (declare-function ns-read-file-name "nsfns.m"
-		  (prompt &optional dir mustmatch init dir_only_p))
+                  (prompt &optional dir mustmatch init dir_only_p))
 
 ;;;; File handling.
 
@@ -496,8 +496,8 @@ unless the current buffer is a scratch buffer."
   "Do a `find-file' with the `ns-input-file' as argument."
   (interactive)
   (let* ((f (file-truename
-	     (expand-file-name (pop ns-input-file)
-			       command-line-default-directory)))
+             (expand-file-name (pop ns-input-file)
+                               command-line-default-directory)))
          (file (find-file-noselect f))
          (bufwin1 (get-buffer-window file 'visible))
          (bufwin2 (get-buffer-window "*scratch*" 'visible)))
@@ -558,7 +558,7 @@ unless the current buffer is a scratch buffer."
   (other-frame -1))
 
 ;; If no position specified, make new frame offset by 25 from current.
-(defvar parameters)		     ; dynamically bound in make-frame
+(defvar parameters)                  ; dynamically bound in make-frame
 (add-hook 'before-make-frame-hook
           (lambda ()
             (let ((left (cdr (assq 'left (frame-parameters))))
@@ -588,8 +588,8 @@ unless the current buffer is a scratch buffer."
   (interactive)
   (modify-frame-parameters
    frame (list (cons 'tool-bar-lines
-		       (if (> (or (frame-parameter frame 'tool-bar-lines) 0) 0)
-				   0 1)) ))
+                       (if (> (or (frame-parameter frame 'tool-bar-lines) 0) 0)
+                                   0 1)) ))
   (if (not tool-bar-mode) (tool-bar-mode t)))
 
 
@@ -609,7 +609,7 @@ unless the current buffer is a scratch buffer."
                                   `(mouse-1 POSITION 1))))
         (if (y-or-n-p (format "Print buffer %s? " (buffer-name)))
             (print-buffer)
-	  (error "Cancelled")))
+          (error "Cancelled")))
     (print-buffer)))
 
 ;;;; Font support.
@@ -663,38 +663,38 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
 ;; See ../international/fontset.el
 (setq ns-reg-to-script
       '(("iso8859-1" . latin)
-	("iso8859-2" . latin)
-	("iso8859-3" . latin)
-	("iso8859-4" . latin)
-	("iso8859-5" . cyrillic)
-	("microsoft-cp1251" . cyrillic)
-	("koi8-r" . cyrillic)
-	("iso8859-6" . arabic)
-	("iso8859-7" . greek)
-	("iso8859-8" . hebrew)
-	("iso8859-9" . latin)
-	("iso8859-10" . latin)
-	("iso8859-11" . thai)
-	("tis620" . thai)
-	("iso8859-13" . latin)
-	("iso8859-14" . latin)
-	("iso8859-15" . latin)
-	("iso8859-16" . latin)
-	("viscii1.1-1" . latin)
-	("jisx0201" . kana)
-	("jisx0208" . han)
-	("jisx0212" . han)
-	("jisx0213" . han)
-	("gb2312.1980" . han)
-	("gb18030" . han)
-	("gbk-0" . han)
-	("big5" . han)
-	("cns11643" . han)
-	("sisheng_cwnn" . bopomofo)
-	("ksc5601.1987" . hangul)
-	("ethiopic-unicode" . ethiopic)
-	("is13194-devanagari" . indian-is13194)
-	("iso10646.indian-1" . devanagari)))
+        ("iso8859-2" . latin)
+        ("iso8859-3" . latin)
+        ("iso8859-4" . latin)
+        ("iso8859-5" . cyrillic)
+        ("microsoft-cp1251" . cyrillic)
+        ("koi8-r" . cyrillic)
+        ("iso8859-6" . arabic)
+        ("iso8859-7" . greek)
+        ("iso8859-8" . hebrew)
+        ("iso8859-9" . latin)
+        ("iso8859-10" . latin)
+        ("iso8859-11" . thai)
+        ("tis620" . thai)
+        ("iso8859-13" . latin)
+        ("iso8859-14" . latin)
+        ("iso8859-15" . latin)
+        ("iso8859-16" . latin)
+        ("viscii1.1-1" . latin)
+        ("jisx0201" . kana)
+        ("jisx0208" . han)
+        ("jisx0212" . han)
+        ("jisx0213" . han)
+        ("gb2312.1980" . han)
+        ("gb18030" . han)
+        ("gbk-0" . han)
+        ("big5" . han)
+        ("cns11643" . han)
+        ("sisheng_cwnn" . bopomofo)
+        ("ksc5601.1987" . hangul)
+        ("ethiopic-unicode" . ethiopic)
+        ("is13194-devanagari" . indian-is13194)
+        ("iso10646.indian-1" . devanagari)))
 
 
 ;;;; Pasteboard support.
@@ -745,7 +745,7 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
   (interactive)
   (call-interactively 'kill-ring-save)
   (ns-store-selection-internal 'SECONDARY
-			       (buffer-substring (point) (mark t))))
+                               (buffer-substring (point) (mark t))))
 (defun ns-paste-secondary ()
   (interactive)
   (insert (ns-get-selection-internal 'SECONDARY)))
@@ -768,12 +768,12 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
     (with-current-buffer (window-buffer window)
       (cond
        ((eq (car scale) (cdr scale))
-	(goto-char (point-max)))
+        (goto-char (point-max)))
        ((= (car scale) 0)
-	(goto-char (point-min)))
+        (goto-char (point-min)))
        (t
-	(goto-char (+ (point-min) 1
-		      (scroll-bar-scale scale (- (point-max) (point-min)))))))
+        (goto-char (+ (point-min) 1
+                      (scroll-bar-scale scale (- (point-max) (point-min)))))))
       (beginning-of-line)
       (set-window-start window (point))
       (vertical-motion (/ (window-height window) 2) window))))
@@ -782,30 +782,30 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
   "Handle scroll bar EVENT to emulate Nextstep style scrolling."
   (interactive "e")
   (let* ((position (event-start event))
-	 (bar-part (nth 4 position))
-	 (window (nth 0 position))
-	 (old-window (selected-window)))
+         (bar-part (nth 4 position))
+         (window (nth 0 position))
+         (old-window (selected-window)))
     (cond
      ((eq bar-part 'ratio)
       (ns-scroll-bar-move event))
      ((eq bar-part 'handle)
       (if (eq window (selected-window))
-	  (track-mouse (ns-scroll-bar-move event))
+          (track-mouse (ns-scroll-bar-move event))
         ;; track-mouse faster for selected window, slower for unselected.
-	(ns-scroll-bar-move event)))
+        (ns-scroll-bar-move event)))
      (t
       (select-window window)
       (cond
        ((eq bar-part 'up)
-	(goto-char (window-start window))
-	(scroll-down 1))
+        (goto-char (window-start window))
+        (scroll-down 1))
        ((eq bar-part 'above-handle)
-	(scroll-down))
+        (scroll-down))
        ((eq bar-part 'below-handle)
-	(scroll-up))
+        (scroll-up))
        ((eq bar-part 'down)
-	(goto-char (window-start window))
-	(scroll-up 1)))
+        (goto-char (window-start window))
+        (scroll-up 1)))
       (select-window old-window)))))
 
 
@@ -841,8 +841,8 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
            ((and mark-active (< (region-beginning) p) (< p (region-end)))
             'region)
            (t
-	    (let ((faces (get-char-property p 'face window)))
-	      (if (consp faces) (car faces) faces)))))))
+            (let ((faces (get-char-property p 'face window)))
+              (if (consp faces) (car faces) faces)))))))
      (t
       nil))))
 
@@ -916,12 +916,12 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
 
   (dolist (service (ns-list-services))
       (if (eq (car service) 'undefined)
-	  (ns-define-service (cdr service))
-	(define-key global-map (vector (car service))
-	  (ns-define-service (cdr service)))))
+          (ns-define-service (cdr service))
+        (define-key global-map (vector (car service))
+          (ns-define-service (cdr service)))))
 
   (if (and (eq (get-lisp-resource nil "NXAutoLaunch") t)
-	   (eq (get-lisp-resource nil "HideOnAutoLaunch") t))
+           (eq (get-lisp-resource nil "HideOnAutoLaunch") t))
       (add-hook 'after-init-hook 'ns-do-hide-emacs))
 
   ;; FIXME: This will surely lead to "MODIFIED OUTSIDE CUSTOM" warnings.
@@ -940,6 +940,10 @@ See the documentation of `create-fontset-from-fontset-spec' for the format.")
 (add-to-list 'frame-creation-function-alist '(ns . x-create-frame-with-faces))
 (add-to-list 'window-system-initialization-alist '(ns . ns-initialize-window-system))
 
+(declare-function ns-toggle-fullscreen-internal "nsfns.m" ())
+(defun ns-toggle-fullscreen ()
+  (interactive)
+  (ns-toggle-fullscreen-internal))
 
 (provide 'ns-win)
 
