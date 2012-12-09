@@ -5876,6 +5876,7 @@ not_in_argv (NSString *arg)
     {
       [toolbar setVisible:NO];
       [toolbar setVisible:YES];
+      [toolbar setVisible:NO];
     }
 #else
   [self windowDidBecomeKey:notification];
@@ -5991,7 +5992,6 @@ not_in_argv (NSString *arg)
       f->border_width = bwidth;
       FRAME_NS_TITLEBAR_HEIGHT (f) = tibar_height;
       FRAME_TOOLBAR_HEIGHT (f) = tobar_height;
-      // FRAME_TOOLBAR_HEIGHT (f) = 0;
       if (tobar_height)
         FRAME_EXTERNAL_TOOL_BAR (f) = 0;
 
