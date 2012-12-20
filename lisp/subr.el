@@ -2628,7 +2628,7 @@ This variable is meaningful on MS-DOG and MS-Windows.
 On those systems, it is automatically local in every buffer.
 On other systems, this variable is normally always nil.
 
-WARNING: This variable is obsolete and will disapper Real Soon Now.
+WARNING: This variable is obsolete and will disappear Real Soon Now.
 Don't use it!")
 
 ;; The `assert' macro from the cl package signals
@@ -3847,7 +3847,7 @@ This is used on the `modification-hooks' property of text clones."
 		(if (not (re-search-forward
 			  (overlay-get ol1 'text-clone-syntax) cend t))
 		    ;; Mark the overlay for deletion.
-		    (overlay-put ol1 'text-clones nil)
+		    (setq end cbeg)
 		  (when (< (match-end 0) cend)
 		    ;; Shrink the clone at its end.
 		    (setq end (min end (match-end 0)))
@@ -4321,6 +4321,36 @@ convenience wrapper around `make-progress-reporter' and friends.
 				   (setq ,(car spec) (1+ ,(car spec)))))
        (progress-reporter-done ,temp2)
        nil ,@(cdr (cdr spec)))))
+
+
+;;;; Support for watching filesystem events.
+
+(defun inotify-event-p (event)
+  "Check if EVENT is an inotify event."
+  (and (listp event)
+       (>= (length event) 3)
+       (eq (car event) 'file-inotify)))
+
+;;;###autoload
+(defun inotify-handle-event (event)
+  "Handle inotify file system monitoring event.
+If EVENT is an inotify filewatch event, call its callback.
+Otherwise, signal a `filewatch-error'."
+  (interactive "e")
+  (unless (inotify-event-p event)
+    (signal 'filewatch-error (cons "Not a valid inotify event" event)))
+  (funcall (nth 2 event) (nth 1 event)))
+
+(defun w32notify-handle-event (event)
+  "Handle MS-Windows file system monitoring event.
+If EVENT is an MS-Windows filewatch event, call its callback.
+Otherwise, signal a `filewatch-error'."
+  (interactive "e")
+  (if (and (eq (car event) 'file-w32notify)
+	   (= (length event) 3))
+      (funcall (nth 2 event) (nth 1 event))
+    (signal 'filewatch-error
+	    (cons "Not a valid MS-Windows file-notify event" event))))
 
 
 ;;;; Comparing version strings.

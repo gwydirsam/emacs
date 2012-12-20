@@ -195,6 +195,7 @@ See `tramp-actions-before-shell' for more info.")
     (dired-uncache . tramp-handle-dired-uncache)
     (expand-file-name . tramp-smb-handle-expand-file-name)
     (file-accessible-directory-p . tramp-smb-handle-file-directory-p)
+    (file-acl . ignore)
     (file-attributes . tramp-smb-handle-file-attributes)
     (file-directory-p .  tramp-smb-handle-file-directory-p)
     (file-executable-p . tramp-handle-file-exists-p)
@@ -227,6 +228,7 @@ See `tramp-actions-before-shell' for more info.")
     (make-symbolic-link . tramp-smb-handle-make-symbolic-link)
     (process-file . tramp-smb-handle-process-file)
     (rename-file . tramp-smb-handle-rename-file)
+    (set-file-acl . ignore)
     (set-file-modes . tramp-smb-handle-set-file-modes)
     ;; `set-file-selinux-context' performed by default handler.
     (set-file-times . ignore)
@@ -265,6 +267,8 @@ This can be used to disable echo etc."
   :type 'string
   :version "24.3")
 
+;; It must be a `defsubst' in order to push the whole code into
+;; tramp-loaddefs.el.  Otherwise, there would be recursive autoloading.
 ;;;###tramp-autoload
 (defsubst tramp-smb-file-name-p (filename)
   "Check if it's a filename for SMB servers."
@@ -485,10 +489,10 @@ pass to the OPERATION."
 
 (defun tramp-smb-handle-copy-file
   (filename newname &optional ok-if-already-exists keep-date
-	    preserve-uid-gid preserve-selinux-context)
+	    preserve-uid-gid preserve-extended-attributes)
   "Like `copy-file' for Tramp files.
 KEEP-DATE has no effect in case NEWNAME resides on an SMB server.
-PRESERVE-UID-GID and PRESERVE-SELINUX-CONTEXT are completely ignored."
+PRESERVE-UID-GID and PRESERVE-EXTENDED-ATTRIBUTES are completely ignored."
   (setq filename (expand-file-name filename)
 	newname (expand-file-name newname))
   (with-tramp-progress-reporter
@@ -1811,5 +1815,6 @@ Returns nil if an error message has appeared."
 ;; * Try to remove the inclusion of dummy "" directory.  Seems to be at
 ;;   several places, especially in `tramp-smb-handle-insert-directory'.
 ;; * Ignore case in file names.
+;; * Implement `tramp-smb-handle-file-acl' for proper Samba versions.
 
 ;;; tramp-smb.el ends here

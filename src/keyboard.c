@@ -313,12 +313,18 @@ static Lisp_Object Qfunction_key;
 Lisp_Object Qmouse_click;
 #ifdef HAVE_NTGUI
 Lisp_Object Qlanguage_change;
+#ifdef WINDOWSNT
+Lisp_Object Qfile_w32notify;
+#endif
 #endif
 static Lisp_Object Qdrag_n_drop;
 static Lisp_Object Qsave_session;
 #ifdef HAVE_DBUS
 static Lisp_Object Qdbus_event;
 #endif
+#ifdef HAVE_INOTIFY
+static Lisp_Object Qfile_inotify;
+#endif /* HAVE_INOTIFY */
 static Lisp_Object Qconfig_changed_event;
 
 /* Lisp_Object Qmouse_movement; - also an event header */
@@ -1116,8 +1122,7 @@ cmd_error_internal (Lisp_Object data, const char *context)
 
   Vsignaling_function = Qnil;
 }
-
-Lisp_Object command_loop_1 (void);
+
 static Lisp_Object command_loop_2 (Lisp_Object);
 static Lisp_Object top_level_1 (Lisp_Object);
 
@@ -1154,7 +1159,7 @@ command_loop (void)
    value to us.  A value of nil means that command_loop_1 itself
    returned due to end of file (or end of kbd macro).  */
 
-Lisp_Object
+static Lisp_Object
 command_loop_2 (Lisp_Object ignore)
 {
   register Lisp_Object val;
@@ -1172,7 +1177,7 @@ top_level_2 (void)
   return Feval (Vtop_level, Qnil);
 }
 
-Lisp_Object
+static Lisp_Object
 top_level_1 (Lisp_Object ignore)
 {
   /* On entry to the outer level, run the startup file */
@@ -3905,6 +3910,18 @@ kbd_buffer_get_event (KBOARD **kbp,
 	  kbd_fetch_ptr = event + 1;
 	}
 #endif
+#ifdef WINDOWSNT
+      else if (event->kind == FILE_NOTIFY_EVENT)
+	{
+	  /* Make an event (file-notify (DESCRIPTOR ACTION FILE) CALLBACK).  */
+	  obj = Fcons (Qfile_w32notify,
+		       list2 (list3 (make_number (event->code),
+				     XCAR (event->arg),
+				     XCDR (event->arg)),
+			      event->frame_or_window));
+	  kbd_fetch_ptr = event + 1;
+	}
+#endif
       else if (event->kind == SAVE_SESSION_EVENT)
         {
           obj = Fcons (Qsave_session, Fcons (event->arg, Qnil));
@@ -3961,6 +3978,13 @@ kbd_buffer_get_event (KBOARD **kbp,
 	  obj = make_lispy_event (event);
 	  kbd_fetch_ptr = event + 1;
 	}
+#endif
+#ifdef HAVE_INOTIFY
+      else if (event->kind == FILE_NOTIFY_EVENT)
+        {
+          obj = make_lispy_event (event);
+          kbd_fetch_ptr = event + 1;
+        }
 #endif
       else if (event->kind == CONFIG_CHANGED_EVENT)
 	{
@@ -5114,7 +5138,7 @@ make_lispy_position (struct frame *f, Lisp_Object x, Lisp_Object y,
 	    string_info = Fcons (string, make_number (charpos));
 	  textpos = (w == XWINDOW (selected_window)
 		     && current_buffer == XBUFFER (w->buffer))
-	    ? PT : XMARKER (w->pointm)->charpos;
+	    ? PT : marker_position (w->pointm);
 
 	  xret = wx;
 	  yret = wy;
@@ -5874,6 +5898,13 @@ make_lispy_event (struct input_event *event)
 	return Fcons (Qdbus_event, event->arg);
       }
 #endif /* HAVE_DBUS */
+
+#ifdef HAVE_INOTIFY
+    case FILE_NOTIFY_EVENT:
+      {
+        return Fcons (Qfile_inotify, event->arg);
+      }
+#endif /* HAVE_INOTIFY */
 
     case CONFIG_CHANGED_EVENT:
 	return Fcons (Qconfig_changed_event,
@@ -10689,7 +10720,7 @@ handle_interrupt (bool in_signal_handler)
       fflush (stdout);
       reset_all_sys_modes ();
 
-#ifdef SIGTSTP			/* Support possible in later USG versions */
+#ifdef SIGTSTP
 /*
  * On systems which can suspend the current process and return to the original
  * shell, this command causes the user to end up back at the shell.
@@ -11334,9 +11365,17 @@ syms_of_keyboard (void)
   DEFSYM (Qlanguage_change, "language-change");
 #endif
 
+#ifdef WINDOWSNT
+  DEFSYM (Qfile_w32notify, "file-w32notify");
+#endif
+
 #ifdef HAVE_DBUS
   DEFSYM (Qdbus_event, "dbus-event");
 #endif
+
+#ifdef HAVE_INOTIFY
+  DEFSYM (Qfile_inotify, "file-inotify");
+#endif /* HAVE_INOTIFY */
 
   DEFSYM (QCenable, ":enable");
   DEFSYM (QCvisible, ":visible");
@@ -12094,11 +12133,20 @@ keys_of_keyboard (void)
 			    "dbus-handle-event");
 #endif
 
+#ifdef HAVE_INOTIFY
+  /* Define a special event which is raised for inotify callback
+     functions.  */
+  initial_define_lispy_key (Vspecial_event_map, "file-inotify",
+                            "inotify-handle-event");
+#endif /* HAVE_INOTIFY */
+
   initial_define_lispy_key (Vspecial_event_map, "config-changed-event",
 			    "ignore");
 #if defined (WINDOWSNT)
   initial_define_lispy_key (Vspecial_event_map, "language-change",
 			    "ignore");
+  initial_define_lispy_key (Vspecial_event_map, "file-w32notify",
+			    "w32notify-handle-event");
 #endif
 }
 

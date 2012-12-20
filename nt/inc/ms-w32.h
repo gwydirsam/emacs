@@ -178,6 +178,10 @@ extern char *getenv ();
 #define strerror sys_strerror
 #undef unlink
 #define unlink  sys_unlink
+/* This prototype is needed because some files include config.h
+   _after_ the standard headers, so sys_unlink gets no prototype from
+   stdio.h or io.h.  */
+extern int sys_unlink (const char *);
 #undef write
 #define write   sys_write
 
@@ -289,6 +293,10 @@ extern struct tm *localtime_r (time_t const * restrict, struct tm * restrict);
 #define NSIG 23
 #endif
 
+#ifndef ENOTSUP
+#define ENOTSUP ENOSYS
+#endif
+
 #ifdef _MSC_VER
 typedef int sigset_t;
 typedef int ssize_t;
@@ -375,6 +383,13 @@ extern char *get_emacs_configuration_options (void);
 #ifndef sys_nerr
 #define sys_nerr _sys_nerr
 #endif
+
+/* This must be after including stdlib.h, which defines putenv on MinGW.  */
+#ifdef putenv
+# undef putenv
+#endif
+#define putenv    sys_putenv
+extern int sys_putenv (char *);
 
 extern int getloadavg (double *, int);
 extern int getpagesize (void);

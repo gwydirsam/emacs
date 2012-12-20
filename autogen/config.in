@@ -57,9 +57,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #undef BROKEN_PTY_READ_AFTER_EAGAIN
 
 /* Define if the system is compatible with BSD 4.2. */
-#undef BSD4_2
-
-/* Define if the system is compatible with BSD 4.2. */
 #undef BSD_SYSTEM
 
 /* Define if AH_BOTTOM should change BSD_SYSTEM. */
@@ -319,6 +316,10 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
    */
 #undef HAVE_DECL_TZNAME
 
+/* Define to 1 if you have the declaration of `unsetenv', and to 0 if you
+   don't. */
+#undef HAVE_DECL_UNSETENV
+
 /* Define to 1 if you have the declaration of `__fpending', and to 0 if you
    don't. */
 #undef HAVE_DECL___FPENDING
@@ -513,6 +514,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Define to 1 if you have inet sockets. */
 #undef HAVE_INET_SOCKETS
+
+/* Define to 1 to use inotify. */
+#undef HAVE_INOTIFY
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -712,6 +716,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 /* Define to 1 if you have the <png.h> header file. */
 #undef HAVE_PNG_H
 
+/* Define to 1 if using POSIX ACL support. */
+#undef HAVE_POSIX_ACL
+
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
 
@@ -783,6 +790,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Define to 1 if you have the `shutdown' function. */
 #undef HAVE_SHUTDOWN
+
+/* Define to 1 if you have the `sig2str' function. */
+#undef HAVE_SIG2STR
 
 /* Define to 1 if 'sig_atomic_t' is a signed integer type. */
 #undef HAVE_SIGNED_SIG_ATOMIC_T
@@ -906,6 +916,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 /* Define to 1 if you have the <sys/bitypes.h> header file. */
 #undef HAVE_SYS_BITYPES_H
 
+/* Define to 1 if you have the <sys/inotify.h> header file. */
+#undef HAVE_SYS_INOTIFY_H
+
 /* Define to 1 if you have the <sys/inttypes.h> header file. */
 #undef HAVE_SYS_INTTYPES_H
 
@@ -982,6 +995,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `unsetenv' function. */
+#undef HAVE_UNSETENV
 
 /* Define to 1 if the system has the type 'unsigned long long int'. */
 #undef HAVE_UNSIGNED_LONG_LONG_INT
@@ -1328,9 +1344,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
    timespec. */
 #undef TYPEOF_STRUCT_STAT_ST_ATIM_IS_STRUCT_TIMESPEC
 
-/* Undocumented. */
-#undef ULIMIT_BREAK_VALUE
-
 /* Define to 1 for Encore UMAX. */
 #undef UMAX
 
@@ -1386,6 +1399,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Version number of package */
 #undef VERSION
+
+/* Define to 1 if unsetenv returns void instead of int. */
+#undef VOID_UNSETENV
 
 /* Define to l, ll, u, ul, ull, etc., as suitable for constants of type
    'wchar_t'. */
@@ -1520,13 +1536,19 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
      when FOO is an inline function in the header; see
      <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=54113>.
    _GL_INLINE_HEADER_END contains useful stuff to put
-     in the same include file, after uses of _GL_INLINE.  */
-#if (__GNUC__ \
-     ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
-     : 199901L <= __STDC_VERSION__)
+     in the same include file, after uses of _GL_INLINE.
+
+   Suppress the use of extern inline on Apple's platforms,
+   as Libc-825.25 (2012-09-19) is incompatible with it; see
+   <http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html>.
+   Perhaps Apple will fix this some day.  */
+#if ((__GNUC__ \
+      ? defined __GNUC_STDC_INLINE__ && __GNUC_STDC_INLINE__ \
+      : 199901L <= __STDC_VERSION__) \
+     && !defined __APPLE__)
 # define _GL_INLINE inline
 # define _GL_EXTERN_INLINE extern inline
-#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
+#elif 2 < __GNUC__ + (7 <= __GNUC_MINOR__) && !defined __APPLE__
 # if __GNUC_GNU_INLINE__
    /* __gnu_inline__ suppresses a GCC 4.2 diagnostic.  */
 #  define _GL_INLINE extern inline __attribute__ ((__gnu_inline__))
@@ -1535,8 +1557,8 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 # endif
 # define _GL_EXTERN_INLINE extern
 #else
-# define _GL_INLINE static inline
-# define _GL_EXTERN_INLINE static inline
+# define _GL_INLINE static _GL_UNUSED
+# define _GL_EXTERN_INLINE static _GL_UNUSED
 #endif
 
 #if 4 < __GNUC__ + (6 <= __GNUC_MINOR__)
@@ -1563,12 +1585,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Define to rpl_gmtime if the replacement function should be used. */
 #undef gmtime
-
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
-#undef inline
-#endif
 
 /* Work around a bug in Apple GCC 4.0.1 build 5465: In C99 mode, it supports
    the ISO C 99 semantics of 'extern inline' (unlike the GNU C semantics of

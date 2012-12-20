@@ -813,14 +813,11 @@ my %%trans = do {
     map {(substr(unpack(q(B8), chr $i++), 2, 6), $_)}
       split //, q(ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/);
 };
-
-binmode(\\*STDIN);
+my $data;
 
 # We read in chunks of 54 bytes, to generate output lines
 # of 72 chars (plus end of line)
-$/ = \\54;
-
-while (my $data = <STDIN>) {
+while (read STDIN, $data, 54) {
     my $pad = q();
 
     # Only for the last chunk, and only if did not fill the last three-byte packet
@@ -988,6 +985,8 @@ This is used to map a mode number to a permission string.")
     (verify-visited-file-modtime . tramp-sh-handle-verify-visited-file-modtime)
     (file-selinux-context . tramp-sh-handle-file-selinux-context)
     (set-file-selinux-context . tramp-sh-handle-set-file-selinux-context)
+    (file-acl . tramp-sh-handle-file-acl)
+    (set-file-acl . tramp-sh-handle-set-file-acl)
     (vc-registered . tramp-sh-handle-vc-registered))
   "Alist of handler functions.
 Operations not mentioned here will be handled by the normal Emacs functions.")
@@ -1535,6 +1534,38 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
   ;; We always return nil.
   nil)
 
+(defun tramp-remote-acl-p (vec)
+  "Check, whether ACL is enabled on the remote host."
+  (with-tramp-connection-property (tramp-get-connection-process vec) "acl-p"
+    (tramp-send-command-and-check vec "getfacl /")))
+
+(defun tramp-sh-handle-file-acl (filename)
+  "Like `file-acl' for Tramp files."
+  (with-parsed-tramp-file-name filename nil
+    (with-tramp-file-property v localname "file-acl"
+      (when (and (tramp-remote-acl-p v)
+		 (tramp-send-command-and-check
+		  v (format
+		     "getfacl -ac %s 2>/dev/null"
+		     (tramp-shell-quote-argument localname))))
+	(with-current-buffer (tramp-get-connection-buffer v)
+	  (goto-char (point-max))
+	  (delete-blank-lines)
+	  (substring-no-properties (buffer-string)))))))
+
+(defun tramp-sh-handle-set-file-acl (filename acl-string)
+  "Like `set-file-acl' for Tramp files."
+  (with-parsed-tramp-file-name filename nil
+    (if (and (stringp acl-string)
+	     (tramp-remote-acl-p v)
+	     (tramp-send-command-and-check
+	      v (format "setfacl --set-file=- %s <<'EOF'\n%s\nEOF\n"
+			(tramp-shell-quote-argument localname) acl-string)))
+	(tramp-set-file-property v localname "file-acl" acl-string)
+      (tramp-set-file-property v localname "file-acl-string" 'undef)))
+  ;; We always return nil.
+  nil)
+
 ;; Simple functions using the `test' command.
 
 (defun tramp-sh-handle-file-executable-p (filename)
@@ -1619,7 +1650,7 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
 	(and (tramp-run-test "-d" (file-name-directory filename))
 	     (tramp-run-test "-w" (file-name-directory filename)))))))
 
-(defun tramp-sh-handle-file-ownership-preserved-p (filename)
+(defun tramp-sh-handle-file-ownership-preserved-p (filename &optional group)
   "Like `file-ownership-preserved-p' for Tramp files."
   (with-parsed-tramp-file-name filename nil
     (with-tramp-file-property v localname "file-ownership-preserved-p"
@@ -1627,7 +1658,10 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
 	;; Return t if the file doesn't exist, since it's true that no
 	;; information would be lost by an (attempted) delete and create.
 	(or (null attributes)
-	    (= (nth 2 attributes) (tramp-get-remote-uid v 'integer)))))))
+	    (and
+	     (= (nth 2 attributes) (tramp-get-remote-uid v 'integer))
+	     (or (not group)
+		 (= (nth 3 attributes) (tramp-get-remote-gid v 'integer)))))))))
 
 ;; Directory listings.
 
@@ -1883,7 +1917,7 @@ tramp-sh-handle-file-name-all-completions: internal error accessing `%s': `%s'"
 
 (defun tramp-sh-handle-copy-file
   (filename newname &optional ok-if-already-exists keep-date
-	    preserve-uid-gid preserve-selinux-context)
+	    preserve-uid-gid preserve-extended-attributes)
   "Like `copy-file' for Tramp files."
   (setq filename (expand-file-name filename))
   (setq newname (expand-file-name newname))
@@ -1893,13 +1927,13 @@ tramp-sh-handle-file-name-all-completions: internal error accessing `%s': `%s'"
 	(tramp-tramp-file-p newname))
     (tramp-do-copy-or-rename-file
      'copy filename newname ok-if-already-exists keep-date
-     preserve-uid-gid preserve-selinux-context))
+     preserve-uid-gid preserve-extended-attributes))
    ;; Compat section.
-   (preserve-selinux-context
+   (preserve-extended-attributes
     (tramp-run-real-handler
      'copy-file
      (list filename newname ok-if-already-exists keep-date
-	   preserve-uid-gid preserve-selinux-context)))
+	   preserve-uid-gid preserve-extended-attributes)))
    (preserve-uid-gid
     (tramp-run-real-handler
      'copy-file
@@ -1962,7 +1996,7 @@ tramp-sh-handle-file-name-all-completions: internal error accessing `%s': `%s'"
 
 (defun tramp-do-copy-or-rename-file
   (op filename newname &optional ok-if-already-exists keep-date
-      preserve-uid-gid preserve-selinux-context)
+      preserve-uid-gid preserve-extended-attributes)
   "Copy or rename a remote file.
 OP must be `copy' or `rename' and indicates the operation to perform.
 FILENAME specifies the file to copy or rename, NEWNAME is the name of
@@ -1971,7 +2005,7 @@ OK-IF-ALREADY-EXISTS means don't barf if NEWNAME exists already.
 KEEP-DATE means to make sure that NEWNAME has the same timestamp
 as FILENAME.  PRESERVE-UID-GID, when non-nil, instructs to keep
 the uid and gid if both files are on the same host.
-PRESERVE-SELINUX-CONTEXT activates selinux commands.
+PRESERVE-EXTENDED-ATTRIBUTES activates selinux and acl commands.
 
 This function is invoked by `tramp-sh-handle-copy-file' and
 `tramp-sh-handle-rename-file'.  It is an error if OP is neither
@@ -1982,8 +2016,8 @@ file names."
   (let ((t1 (tramp-tramp-file-p filename))
 	(t2 (tramp-tramp-file-p newname))
 	(length (nth 7 (file-attributes (file-truename filename))))
-	(context (and preserve-selinux-context
-		      (apply 'file-selinux-context (list filename))))
+	(attributes (and preserve-extended-attributes
+			 (apply 'file-extended-attributes (list filename))))
 	pr tm)
 
     (with-parsed-tramp-file-name (if t1 filename newname) nil
@@ -2053,8 +2087,9 @@ file names."
 	  ;; One of them must be a Tramp file.
 	  (error "Tramp implementation says this cannot happen")))
 
-	;; Handle `preserve-selinux-context'.
-	(when context (apply 'set-file-selinux-context (list newname context)))
+	;; Handle `preserve-extended-attributes'.
+	(when attributes
+	  (apply 'set-file-extended-attributes (list newname attributes)))
 
 	;; In case of `rename', we must flush the cache of the source file.
 	(when (and t1 (eq op 'rename))
@@ -2382,17 +2417,38 @@ The method used must be an out-of-band method."
 		;; last longer than 60 secs.
 		(let ((p (let ((default-directory
 				 (tramp-compat-temporary-file-directory)))
-			   (apply 'start-process
+			   (apply 'start-process-shell-command
 				  (tramp-get-connection-name v)
 				  (tramp-get-connection-buffer v)
 				  copy-program
-				  (append copy-args (list source target))))))
+				  (append
+				   copy-args
+				   (list
+				    (shell-quote-argument source)
+				    (shell-quote-argument target)
+				    "&&" "echo" "tramp_exit_status" "0"
+				    "||" "echo" "tramp_exit_status" "1"))))))
 		  (tramp-message
 		   orig-vec 6 "%s"
 		   (mapconcat 'identity (process-command p) " "))
 		  (tramp-compat-set-process-query-on-exit-flag p nil)
 		  (tramp-process-actions
-		   p v nil tramp-actions-copy-out-of-band)))
+		   p v nil tramp-actions-copy-out-of-band)
+
+		  ;; Check the return code.
+		  (goto-char (point-max))
+		  (unless
+		      (re-search-backward "tramp_exit_status [0-9]+" nil t)
+		    (tramp-error
+		     orig-vec 'file-error
+		     "Couldn't find exit status of `%s'" (process-command p)))
+		  (skip-chars-forward "^ ")
+		  (unless (zerop (read (current-buffer)))
+		    (forward-line -1)
+		    (tramp-error
+		     orig-vec 'file-error
+		     "Error copying: `%s'"
+		     (buffer-substring (point-min) (point-at-eol))))))
 
 	    ;; Reset the transfer process properties.
 	    (tramp-message orig-vec 6 "\n%s" (buffer-string))
@@ -2913,16 +2969,6 @@ the result will be a local, non-Tramp, filename."
       (if (equal ret -1)
 	  (keyboard-quit)
 	ret))))
-
-(defun tramp-sh-handle-call-process-region
-  (start end program &optional delete buffer display &rest args)
-  "Like `call-process-region' for Tramp files."
-  (let ((tmpfile (tramp-compat-make-temp-file "")))
-    (write-region start end tmpfile)
-    (when delete (delete-region start end))
-    (unwind-protect
-	(apply 'call-process program tmpfile buffer display args)
-      (delete-file tmpfile))))
 
 (defun tramp-sh-handle-file-local-copy (filename)
   "Like `file-local-copy' for Tramp files."
@@ -5013,7 +5059,9 @@ This is used internally by `tramp-file-mode-from-int'."
   (if (equal id-format 'integer) (user-uid) (user-login-name)))
 
 (defun tramp-get-local-gid (id-format)
-  (nth 3 (tramp-compat-file-attributes "~/" id-format)))
+  (if (and (fboundp 'group-gid) (equal id-format 'integer))
+      (tramp-compat-funcall 'group-gid)
+    (nth 3 (tramp-compat-file-attributes "~/" id-format))))
 
 ;; Some predefined connection properties.
 (defun tramp-get-inline-compress (vec prop size)

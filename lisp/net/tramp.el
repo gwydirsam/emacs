@@ -1455,6 +1455,11 @@ an input event arrives.  The other arguments are passed to `tramp-error'."
 	   (or (and (bufferp buffer) buffer)
 	       (and (processp vec-or-proc) (process-buffer vec-or-proc))
 	       (tramp-get-connection-buffer vec-or-proc)))
+	  (when (string-equal fmt-string "Process died")
+	    (message
+	     "%s\n    %s"
+	     "Tramp failed to connect.  If this happens repeatedly, try"
+	     "`M-x tramp-cleanup-this-connection'"))
 	  (sit-for 30))))))
 
 (defmacro with-parsed-tramp-file-name (filename var &rest body)
@@ -1750,10 +1755,12 @@ value of `default-file-modes', without execute permissions."
 
 (defalias 'tramp-replace-environment-variables
   (if (ignore-errors
-        (equal "${ tramp?}" (substitute-env-vars "${ tramp?}" 'only-defined)))
+        (equal "${ tramp?}"
+	       (tramp-compat-funcall
+		'substitute-env-vars "${ tramp?}" 'only-defined)))
       (lambda (filename)
         "Like `substitute-env-vars' with `only-defined' non-nil."
-        (substitute-env-vars filename 'only-defined))
+        (tramp-compat-funcall 'substitute-env-vars filename 'only-defined))
     (lambda (filename)
       "Replace environment variables in FILENAME.
 Return the string with the replaced variables."
@@ -1877,7 +1884,8 @@ ARGS are the arguments OPERATION has been called with."
 		  ;; Emacs 22+ only.
 		  'set-file-times
 		  ;; Emacs 24+ only.
-		  'file-selinux-context 'set-file-selinux-context
+		  'file-acl 'file-selinux-context
+		  'set-file-acl 'set-file-selinux-context
 		  ;; XEmacs only.
 		  'abbreviate-file-name 'create-file-buffer
 		  'dired-file-modtime 'dired-make-compressed-filename
@@ -1928,10 +1936,7 @@ ARGS are the arguments OPERATION has been called with."
                   ;; Emacs 23+ only.
                   'start-file-process
 	          ;; XEmacs only.
-		  'dired-print-file 'dired-shell-call-process
-		  ;; nowhere yet.
-		  'executable-find 'start-process
-		  'call-process 'call-process-region))
+		  'dired-print-file 'dired-shell-call-process))
     default-directory)
    ;; Unknown file primitive.
    (t (error "unknown file I/O primitive: %s" operation))))

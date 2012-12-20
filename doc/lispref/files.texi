@@ -241,9 +241,9 @@ used, and in many cases only some of the functions are called.
 @defvar find-file-literally
 This buffer-local variable, if set to a non-@code{nil} value, makes
 @code{save-buffer} behave as if the buffer were visiting its file
-literally, i.e. without conversions of any kind.  The command
+literally, i.e., without conversions of any kind.  The command
 @code{find-file-literally} sets this variable's local value, but other
-equivalent functions and commands can do that as well, e.g.@: to avoid
+equivalent functions and commands can do that as well, e.g., to avoid
 automatic addition of a newline at the end of the file.  This variable
 is permanent local, so it is unaffected by changes of major modes.
 @end defvar
@@ -895,10 +895,13 @@ returns @code{nil}.  However, if the open fails, it signals an error
 using @var{string} as the error message text.
 @end defun
 
-@defun file-ownership-preserved-p filename
+@defun file-ownership-preserved-p filename &optional group
 This function returns @code{t} if deleting the file @var{filename} and
 then creating it anew would keep the file's owner unchanged.  It also
 returns @code{t} for nonexistent files.
+
+If the optional argument @var{group} is non-@code{nil}, this function
+also checks that the file's group would be unchanged.
 
 If @var{filename} is a symbolic link, then, unlike the other functions
 discussed here, @code{file-ownership-preserved-p} does @emph{not}
@@ -1246,8 +1249,7 @@ The file's modes, as a string of ten letters or dashes,
 as in @samp{ls -l}.
 
 @item
-@code{t} if the file's @acronym{GID} would change if file were
-deleted and recreated; @code{nil} otherwise.
+An unspecified value, present for backward compatibility.
 
 @item
 The file's inode number.  If possible, this is an integer.  If the
@@ -1279,7 +1281,7 @@ For example, here are the file attributes for @file{files.texi}:
           (20000 23 0 0)
           (20614 64555 902289 872000)
           122295 "-rw-rw-rw-"
-          nil  (5888 2 . 43978)
+          t (5888 2 . 43978)
           (15479 . 46724))
 @end group
 @end example
@@ -1318,8 +1320,8 @@ end-of-line format is CR-LF.)
 @item "-rw-rw-rw-"
 has a mode of read and write access for the owner, group, and world.
 
-@item nil
-would retain the same @acronym{GID} if it were recreated.
+@item t
+is merely a placeholder; it carries no information.
 
 @item (5888 2 . 43978)
 has an inode number of 6473924464520138.
@@ -1348,6 +1350,43 @@ actually mean.
 If the file does not exist or is inaccessible, or if the system does
 not support SELinux, or if Emacs was not compiled with SELinux
 support, then the return value is @code{(nil nil nil nil)}.
+@end defun
+
+@cindex access control list
+@cindex ACL entries
+  If Emacs has been compiled with @dfn{ACL} (access control list)
+support, you can use the function @code{file-acl} to retrieve a file's
+ACL entries.  The format is platform-specific; on GNU/Linux and BSD,
+Emacs uses the POSIX ACL interface, while on MS-Windows Emacs emulates
+the POSIX ACL interface with native file security APIs.  For the
+function @code{set-file-acl}, see @ref{Changing Files}.
+
+@defun file-acl filename
+This function returns the ACL entries of the file @var{filename}.
+The return value is a string containing the textual representation of
+the ACL entries.  On Posix hosts, it looks like this:
+
+@example
+@group
+user::rw-
+group::r--
+group:gnu:rwx
+mask::rwx
+other::r--
+@end group
+@end example
+
+@cindex security descriptor, file
+@cindex SDDL, MS-Windows
+On MS-Windows, the return value is a textual description of the file's
+@dfn{security descriptor} in @acronym{SDDL}, the @dfn{Security
+Descriptor Definition Language}.
+
+If the file does not exist or is inaccessible, or if Emacs was unable to
+determine the ACL entries, then the return value is @code{nil}.  The
+latter can happen for local files if Emacs was not compiled with ACL
+support, or for remote files if the file handler returns nil for the
+file's ACL entries.
 @end defun
 
 @node Locating Files
@@ -1390,7 +1429,7 @@ predicate function for testing whether a candidate file is suitable.
 The predicate is passed the candidate file name as its single
 argument.  If @var{predicate} is @code{nil} or omitted,
 @code{locate-file} uses @code{file-readable-p} as the predicate.
-@xref{Kinds of Files}, for other useful predicates, e.g.@:
+@xref{Kinds of Files}, for other useful predicates, e.g.,
 @code{file-executable-p} and @code{file-directory-p}.
 
 For compatibility, @var{predicate} can also be one of the symbols
@@ -1539,9 +1578,10 @@ non-@code{nil}, we attempt to copy the user and group ownership of the
 file.  This works only on some operating systems, and only if you have
 the correct permissions to do so.
 
-If the optional argument @var{preserve-selinux} is non-@code{nil}, and
-Emacs has been compiled with SELinux support, this function attempts
-to copy the file's SELinux context (@pxref{File Attributes}).
+If the optional argument @var{preserve-extended-attributes} is
+non-@code{nil}, and Emacs has been built with the appropriate support,
+this function attempts to copy the file's extended attributes, such as
+its SELinux context and ACL entries (@pxref{File Attributes}).
 @end deffn
 
 @deffn Command make-symbolic-link filename newname  &optional ok-if-exists
@@ -1660,7 +1700,7 @@ This function converts a symbolic file mode specification in
 @var{modes} into the equivalent integer value.  If the symbolic
 specification is based on an existing file, that file's mode bits are
 taken from the optional argument @var{base-modes}; if that argument is
-omitted or @code{nil}, it defaults to 0, i.e.@: no access rights at
+omitted or @code{nil}, it defaults to 0, i.e., no access rights at
 all.
 @end defun
 
@@ -1680,6 +1720,14 @@ a list @code{(@var{user} @var{role} @var{type} @var{range})}, like the
 return value of @code{file-selinux-context}.  The function does
 nothing if SELinux is disabled, or if Emacs was compiled without
 SELinux support.
+@end defun
+
+@defun set-file-acl filename acl-string
+This function sets the ACL entries of the file @var{filename} to
+@var{acl-string}.  @xref{File Attributes}, for a brief description of
+ACLs.  The @var{acl-string} argument should be a string containing the
+textual representation of the desired ACL entries in the format
+appropriate for the ACL interface being used.
 @end defun
 
 @node File Names
@@ -2716,9 +2764,12 @@ first, before handlers for jobs such as remote file access.
 @code{dired-compress-file}, @code{dired-uncache},@*
 @code{expand-file-name},
 @code{file-accessible-directory-p},
+@code{file-acl},
 @code{file-attributes},
 @code{file-directory-p},
+@code{file-equal-p},
 @code{file-executable-p}, @code{file-exists-p},
+@code{file-in-directory-p},
 @code{file-local-copy}, @code{file-remote-p},
 @code{file-modes}, @code{file-name-all-completions},
 @code{file-name-as-directory},
@@ -2727,9 +2778,10 @@ first, before handlers for jobs such as remote file access.
 @code{file-name-nondirectory},
 @code{file-name-sans-versions}, @code{file-newer-than-file-p},
 @code{file-ownership-preserved-p},
-@code{file-readable-p}, @code{file-regular-p}, @code{file-in-directory-p},
+@code{file-readable-p}, @code{file-regular-p},
+@code{file-selinux-context},
 @code{file-symlink-p}, @code{file-truename}, @code{file-writable-p},
-@code{file-equal-p}, @code{find-backup-file-name},
+@code{find-backup-file-name},
 @c Not sure why it was here:   @code{find-file-noselect},@*
 @code{get-file-buffer},
 @code{insert-directory},
@@ -2740,7 +2792,8 @@ first, before handlers for jobs such as remote file access.
 @code{make-directory-internal},
 @code{make-symbolic-link},@*
 @code{process-file},
-@code{rename-file}, @code{set-file-modes}, @code{set-file-times},
+@code{rename-file}, @code{set-file-acl}, @code{set-file-modes},
+@code{set-file-selinux-context}, @code{set-file-times},
 @code{set-visited-file-modtime}, @code{shell-command},
 @code{start-file-process},
 @code{substitute-in-file-name},@*
@@ -2763,9 +2816,12 @@ first, before handlers for jobs such as remote file access.
 @code{dired-compress-file}, @code{dired-uncache},
 @code{expand-file-name},
 @code{file-accessible-direc@discretionary{}{}{}tory-p},
+@code{file-acl},
 @code{file-attributes},
 @code{file-direct@discretionary{}{}{}ory-p},
+@code{file-equal-p},
 @code{file-executable-p}, @code{file-exists-p},
+@code{file-in-directory-p},
 @code{file-local-copy}, @code{file-remote-p},
 @code{file-modes}, @code{file-name-all-completions},
 @code{file-name-as-directory},
@@ -2774,18 +2830,22 @@ first, before handlers for jobs such as remote file access.
 @code{file-name-nondirec@discretionary{}{}{}tory},
 @code{file-name-sans-versions}, @code{file-newer-than-file-p},
 @code{file-ownership-pre@discretionary{}{}{}served-p},
-@code{file-readable-p}, @code{file-regular-p}, @code{file-symlink-p},
-@code{file-truename}, @code{file-writable-p},
+@code{file-readable-p}, @code{file-regular-p},
+@code{file-selinux-context},
+@code{file-symlink-p}, @code{file-truename}, @code{file-writable-p},
 @code{find-backup-file-name},
 @c Not sure why it was here:   @code{find-file-noselect},
 @code{get-file-buffer},
 @code{insert-directory},
 @code{insert-file-contents},
-@code{load}, @code{make-direc@discretionary{}{}{}tory},
+@code{load},
+@code{make-auto-save-file-name},
+@code{make-direc@discretionary{}{}{}tory},
 @code{make-direc@discretionary{}{}{}tory-internal},
 @code{make-symbolic-link},
 @code{process-file},
-@code{rename-file}, @code{set-file-modes},
+@code{rename-file}, @code{set-file-acl}, @code{set-file-modes},
+@code{set-file-selinux-context}, @code{set-file-times},
 @code{set-visited-file-modtime}, @code{shell-command},
 @code{start-file-process},
 @code{substitute-in-file-name},

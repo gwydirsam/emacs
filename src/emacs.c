@@ -41,6 +41,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #if defined WINDOWSNT || defined HAVE_NTGUI
 #include "w32select.h"
 #include "w32font.h"
+#include "w32common.h"
 #endif
 
 #if defined HAVE_NTGUI && defined CYGWIN
@@ -535,7 +536,7 @@ DEFUN ("invocation-directory", Finvocation_directory, Sinvocation_directory,
 #ifdef HAVE_TZSET
 /* A valid but unlikely value for the TZ environment value.
    It is OK (though a bit slower) if the user actually chooses this value.  */
-static char dump_tz[] = "UtC0";
+static char const dump_tz[] = "UtC0";
 #endif
 
 #ifndef ORDINARY_LINK
@@ -717,7 +718,7 @@ main (int argc, char **argv)
 
 #ifdef G_SLICE_ALWAYS_MALLOC
   /* This is used by the Cygwin build.  */
-  setenv ("G_SLICE", "always-malloc", 1);
+  xputenv ("G_SLICE=always-malloc");
 #endif
 
 #ifdef GNU_LINUX
@@ -731,6 +732,13 @@ main (int argc, char **argv)
 
       heap_bss_diff = (char *)my_heap_start - max (my_endbss, my_endbss_static);
     }
+#endif
+
+#if defined WINDOWSNT || defined HAVE_NTGUI
+  /* Set global variables used to detect Windows version.  Do this as
+     early as possible.  (unexw32.c calls this function as well, but
+     the additional call here is harmless.) */
+  cache_system_info ();
 #endif
 
 #ifdef RUN_TIME_REMAP
@@ -803,9 +811,8 @@ main (int argc, char **argv)
 #ifdef HAVE_PERSONALITY_LINUX32
   if (dumping && ! getenv ("EMACS_HEAP_EXEC"))
     {
-      static char heapexec[] = "EMACS_HEAP_EXEC=true";
       /* Set this so we only do this once.  */
-      putenv (heapexec);
+      xputenv ("EMACS_HEAP_EXEC=true");
 
       /* A flag to turn off address randomization which is introduced
          in linux kernel shipped with fedora core 4 */
@@ -1288,6 +1295,7 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
 
 #ifdef WINDOWSNT
   globals_of_w32 ();
+  globals_of_w32notify ();
   /* Initialize environment from registry settings.  */
   init_environment (argv);
   init_ntproc (dumping); /* must precede init_editfns.  */
@@ -1309,7 +1317,7 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
      don't pollute Vglobal_environment.  */
   /* Setting LANG here will defeat the startup locale processing...  */
 #ifdef AIX
-  putenv ("LANG=C");
+  xputenv ("LANG=C");
 #endif
 
   init_buffer ();	/* Init default directory of main buffer.  */
@@ -1443,12 +1451,17 @@ Using an Emacs configured with --with-x-toolkit=lucid does not have this problem
       syms_of_gnutls ();
 #endif
 
+#ifdef HAVE_INOTIFY
+      syms_of_inotify ();
+#endif /* HAVE_INOTIFY */
+
 #ifdef HAVE_DBUS
       syms_of_dbusbind ();
 #endif /* HAVE_DBUS */
 
 #ifdef WINDOWSNT
       syms_of_ntterm ();
+      syms_of_w32notify ();
 #endif /* WINDOWSNT */
 
       syms_of_profiler ();

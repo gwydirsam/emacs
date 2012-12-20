@@ -1,3 +1,34 @@
+2012-12-15  Juri Linkov  <juri@jurta.org>
+
+	* misc.texi (Recursive Edit): Add a link to "Query Replace".
+	(Bug#13181)
+
+2012-12-10  Dani Moncayo  <dmoncayo@gmail.com>
+
+	* killing.texi (Deletion): Doc fix (Bug#12748).
+
+2012-12-06  Paul Eggert  <eggert@cs.ucla.edu>
+
+	* doclicense.texi, gpl.texi: Update to latest version from FSF.
+	These are just minor editorial changes.
+
+2012-12-06  Juanma Barranquero  <lekktu@gmail.com>
+
+	* vc1-xtra.texi (General VC Options): Remove obsolete reference
+	to `vc-path'.
+
+2012-12-03  Chong Yidong  <cyd@gnu.org>
+
+	* custom.texi (Init Rebinding): kbd is now a function (Bug#13052).
+
+2012-12-02  Kevin Ryde  <user42@zip.com.au>
+
+	* maintaining.texi (Tag Syntax): Mention (defvar foo) handling.
+
+2012-12-01  Kevin Ryde  <user42@zip.com.au>
+
+	* maintaining.texi (Tag Syntax): Mention Perl's "use constant".
+
 2012-11-24  Paul Eggert  <eggert@cs.ucla.edu>
 
 	* doclicense.texi, gpl.texi: Update to latest version from FSF.
