@@ -23,7 +23,7 @@
 @c %**end of header
 
 @copying
-Copyright @copyright{} 1988-1993, 1995, 1998-2004, 2007, 2012
+Copyright @copyright{} 1988--1993, 1995, 1998--2004, 2007, 2012
 Free Software Foundation, Inc.
 
 @c Since we are both GNU manuals, we do not need to ack each other here.
@@ -43,8 +43,7 @@ and with the Back-Cover Texts as in (a) below.  A copy of the license
 is included in the section entitled ``GNU Free Documentation License''.
 
 (a) The FSF's Back-Cover Text is: ``You have the freedom to copy and
-modify this GNU manual.  Buying copies from the FSF supports it in
-developing GNU and promoting software freedom.''
+modify this GNU manual.''
 @end quotation
 @end copying
 
@@ -226,8 +225,7 @@ in between, can be combined into a larger grouping of type @samp{exp}.
 * Conflicts::
 @end menu
 
-@node Grammar format, Example, Wisent Grammar, Wisent Grammar
-@comment  node-name,  next,  previous,  up
+@node Grammar format
 @section Grammar format
 
 @cindex grammar format
@@ -445,8 +443,7 @@ matching the empty string, for which the default action is to return
 @end table
 @end table
 
-@node Example, Compiling a grammar, Grammar format, Wisent Grammar
-@comment  node-name,  next,  previous,  up
+@node Example
 @section Example
 
 @cindex grammar example
@@ -561,8 +558,7 @@ exp:
 @end group
 @end example
 
-@node Compiling a grammar, Conflicts, Example, Wisent Grammar
-@comment  node-name,  next,  previous,  up
+@node Compiling a grammar
 @section Compiling a grammar
 
 @cindex automaton
@@ -620,8 +616,7 @@ an Emacs Lisp function (lambda expression).
 @end table
 @end defun
 
-@node Conflicts, , Compiling a grammar, Wisent Grammar
-@comment  node-name,  next,  previous,  up
+@node Conflicts
 @section Conflicts
 
 Normally, a grammar should produce an automaton where at each state
@@ -1610,7 +1605,7 @@ it can be worth a mix of the two styles!
 * Useful functions::
 @end menu
 
-@node Iterative style, Bison style, Grammar styles, Grammar styles
+@node Iterative style
 @subsection Iterative style
 
 @cindex grammar iterative style

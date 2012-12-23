@@ -1,3 +1,23 @@
+2012-12-22  Martin Rudalics  <rudalics@gmx.at>
+
+	* windows.texi (Selecting Windows): Reword description of
+	select-window (Bug#13248).
+
+2012-12-22  Eli Zaretskii  <eliz@gnu.org>
+
+	* files.texi (File Attributes, Changing Files): Remove the details
+	about the text returned by file-acl.  Instead, just document that
+	it is an opaque string meant to be used by set-file-acl.
+
+2012-12-21  Chong Yidong  <cyd@gnu.org>
+
+	* modes.texi (Auto Major Mode): Fix typo (Bug#13230).
+
+	* customize.texi (Simple Types): Document key-sequence type
+	(Bug#13048).
+
+	* strings.texi (Text Comparison): Doc fix for compare-strings.
+
 2012-12-19  Michael Albinus  <michael.albinus@gmx.de>
 
 	* files.texi (Magic File Names): Add `file-acl',
