@@ -1,6 +1,7 @@
 /* Display generation from window structure and buffer text.
 
-Copyright (C) 1985-1988, 1993-1995, 1997-2012 Free Software Foundation, Inc.
+Copyright (C) 1985-1988, 1993-1995, 1997-2013 Free Software Foundation,
+Inc.
 
 This file is part of GNU Emacs.
 
@@ -9397,7 +9398,8 @@ message_dolog (const char *m, ptrdiff_t nbytes, int nlflag, int multibyte)
       int old_windows_or_buffers_changed = windows_or_buffers_changed;
       ptrdiff_t point_at_end = 0;
       ptrdiff_t zv_at_end = 0;
-      Lisp_Object old_deactivate_mark, tem;
+      Lisp_Object old_deactivate_mark;
+      bool shown;
       struct gcpro gcpro1;
 
       old_deactivate_mark = Vdeactivate_mark;
@@ -9539,9 +9541,9 @@ message_dolog (const char *m, ptrdiff_t nbytes, int nlflag, int multibyte)
       unchain_marker (XMARKER (oldbegv));
       unchain_marker (XMARKER (oldzv));
 
-      tem = Fget_buffer_window (Fcurrent_buffer (), Qt);
+      shown = buffer_window_count (current_buffer) > 0;
       set_buffer_internal (oldbuf);
-      if (NILP (tem))
+      if (!shown)
 	windows_or_buffers_changed = old_windows_or_buffers_changed;
       message_log_need_newline = !nlflag;
       Vdeactivate_mark = old_deactivate_mark;
@@ -14188,7 +14190,12 @@ set_cursor_from_row (struct window *w, struct glyph_row *row,
 	 CHARPOS is zero or negative.  */
       int empty_line_p =
 	(row->reversed_p ? glyph > glyphs_end : glyph < glyphs_end)
-	&& INTEGERP (glyph->object) && glyph->charpos > 0;
+	&& INTEGERP (glyph->object) && glyph->charpos > 0
+	/* On a TTY, continued and truncated rows also have a glyph at
+	   their end whose OBJECT is zero and whose CHARPOS is
+	   positive (the continuation and truncation glyphs), but such
+	   rows are obviously not "empty".  */
+	&& !(row->continued_p || row->truncated_on_right_p);
 
       if (row->ends_in_ellipsis_p && pos_after == last_pos)
 	{
@@ -15648,7 +15655,6 @@ redisplay_window (Lisp_Object window, int just_this_one_p)
 	  /* Some people insist on not letting point enter the scroll
 	     margin, even though this part handles windows that didn't
 	     scroll at all.  */
-	  struct frame *f = XFRAME (w->frame);
 	  int margin = min (scroll_margin, WINDOW_TOTAL_LINES (w) / 4);
 	  int pixel_margin = margin * FRAME_LINE_HEIGHT (f);
 	  bool header_line = WINDOW_WANTS_HEADER_LINE_P (w);

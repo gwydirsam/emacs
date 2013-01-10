@@ -1,5 +1,5 @@
 /* Coding system handler (conversion, detection, etc).
-   Copyright (C) 2001-2012 Free Software Foundation, Inc.
+   Copyright (C) 2001-2013 Free Software Foundation, Inc.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
      2005, 2006, 2007, 2008, 2009, 2010, 2011
      National Institute of Advanced Industrial Science and Technology (AIST)
@@ -302,6 +302,7 @@ Lisp_Object Vcoding_system_hash_table;
 static Lisp_Object Qcoding_system, Qeol_type;
 static Lisp_Object Qcoding_aliases;
 Lisp_Object Qunix, Qdos;
+static Lisp_Object Qmac;
 Lisp_Object Qbuffer_file_coding_system;
 static Lisp_Object Qpost_read_conversion, Qpre_write_conversion;
 static Lisp_Object Qdefault_char;
@@ -10303,6 +10304,7 @@ syms_of_coding (void)
   DEFSYM (Qeol_type, "eol-type");
   DEFSYM (Qunix, "unix");
   DEFSYM (Qdos, "dos");
+  DEFSYM (Qmac, "mac");
 
   DEFSYM (Qbuffer_file_coding_system, "buffer-file-coding-system");
   DEFSYM (Qpost_read_conversion, "post-read-conversion");

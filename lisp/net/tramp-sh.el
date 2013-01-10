@@ -1,6 +1,6 @@
 ;;; tramp-sh.el --- Tramp access functions for (s)sh-like connections
 
-;; Copyright (C) 1998-2012 Free Software Foundation, Inc.
+;; Copyright (C) 1998-2013 Free Software Foundation, Inc.
 
 ;; (copyright statements below in code to be updated with the above notice)
 
@@ -805,7 +805,7 @@ on the remote host.")
 (defconst tramp-perl-encode
   "%s -e '
 # This script contributed by Juanma Barranquero <lektu@terra.es>.
-# Copyright (C) 2002-2012 Free Software Foundation, Inc.
+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
 use strict;
 
 my %%trans = do {
@@ -843,7 +843,7 @@ This string is passed to `format', so percent characters need to be doubled.")
 (defconst tramp-perl-decode
   "%s -e '
 # This script contributed by Juanma Barranquero <lektu@terra.es>.
-# Copyright (C) 2002-2012 Free Software Foundation, Inc.
+# Copyright (C) 2002-2013 Free Software Foundation, Inc.
 use strict;
 
 my %%trans = do {
@@ -935,6 +935,7 @@ This is used to map a mode number to a permission string.")
     (file-name-nondirectory . tramp-handle-file-name-nondirectory)
     (file-truename . tramp-sh-handle-file-truename)
     (file-exists-p . tramp-sh-handle-file-exists-p)
+    (file-accessible-directory-p . tramp-handle-file-accessible-directory-p)
     (file-directory-p . tramp-sh-handle-file-directory-p)
     (file-executable-p . tramp-sh-handle-file-executable-p)
     (file-readable-p . tramp-sh-handle-file-readable-p)
@@ -1457,7 +1458,9 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
   ;; working with su(do)? when it is needed, so it shall succeed in
   ;; the majority of cases.
   ;; Don't modify `last-coding-system-used' by accident.
-  (let ((last-coding-system-used last-coding-system-used))
+  (let ((last-coding-system-used last-coding-system-used)
+	(uid (and (numberp uid) (round uid)))
+	(gid (and (numberp gid) (round gid))))
     (if (file-remote-p filename)
 	(with-parsed-tramp-file-name filename nil
 	  (if (and (zerop (user-uid)) (tramp-local-host-p v))
@@ -1529,10 +1532,11 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
 			(if (stringp (nth 3 context))
 			    (format "--range=%s" (nth 3 context)) "")
 			(tramp-shell-quote-argument localname))))
-	(tramp-set-file-property v localname "file-selinux-context" context)
-      (tramp-set-file-property v localname "file-selinux-context" 'undef)))
-  ;; We always return nil.
-  nil)
+	(progn
+	  (tramp-set-file-property v localname "file-selinux-context" context)
+	  t)
+      (tramp-set-file-property v localname "file-selinux-context" 'undef)
+      nil)))
 
 (defun tramp-remote-acl-p (vec)
   "Check, whether ACL is enabled on the remote host."
@@ -1546,25 +1550,31 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
       (when (and (tramp-remote-acl-p v)
 		 (tramp-send-command-and-check
 		  v (format
-		     "getfacl -ac %s 2>/dev/null"
+		     "getfacl -acs %s 2>/dev/null"
 		     (tramp-shell-quote-argument localname))))
 	(with-current-buffer (tramp-get-connection-buffer v)
 	  (goto-char (point-max))
 	  (delete-blank-lines)
-	  (substring-no-properties (buffer-string)))))))
+	  (when (> (point-max) (point-min))
+	    (substring-no-properties (buffer-string))))))))
 
 (defun tramp-sh-handle-set-file-acl (filename acl-string)
   "Like `set-file-acl' for Tramp files."
   (with-parsed-tramp-file-name filename nil
-    (if (and (stringp acl-string)
-	     (tramp-remote-acl-p v)
-	     (tramp-send-command-and-check
-	      v (format "setfacl --set-file=- %s <<'EOF'\n%s\nEOF\n"
-			(tramp-shell-quote-argument localname) acl-string)))
-	(tramp-set-file-property v localname "file-acl" acl-string)
-      (tramp-set-file-property v localname "file-acl-string" 'undef)))
-  ;; We always return nil.
-  nil)
+    (when (tramp-remote-acl-p v)
+      (condition-case nil
+	  (when (stringp acl-string)
+	    (tramp-set-file-property v localname "file-acl" acl-string)
+	    (dolist (line (split-string acl-string nil t) t)
+	      (unless (tramp-send-command-and-check
+		       v (format
+			  "setfacl -m %s %s"
+			  line (tramp-shell-quote-argument localname)))
+		(error nil))))
+	;; In case of errors, we return `nil'.
+	(error
+	 (tramp-set-file-property v localname "file-acl" 'undef)
+	 nil)))))
 
 ;; Simple functions using the `test' command.
 
@@ -2087,9 +2097,11 @@ file names."
 	  ;; One of them must be a Tramp file.
 	  (error "Tramp implementation says this cannot happen")))
 
-	;; Handle `preserve-extended-attributes'.
+	;; Handle `preserve-extended-attributes'.  We ignore possible
+	;; errors, because ACL strings could be incompatible.
 	(when attributes
-	  (apply 'set-file-extended-attributes (list newname attributes)))
+	  (ignore-errors
+	    (apply 'set-file-extended-attributes (list newname attributes))))
 
 	;; In case of `rename', we must flush the cache of the source file.
 	(when (and t1 (eq op 'rename))

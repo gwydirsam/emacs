@@ -1,6 +1,6 @@
 ;;; tramp.el --- Transparent Remote Access, Multiple Protocol
 
-;; Copyright (C) 1998-2012 Free Software Foundation, Inc.
+;; Copyright (C) 1998-2013 Free Software Foundation, Inc.
 
 ;; Author: Kai Großjohann <kai.grossjohann@gmx.net>
 ;;         Michael Albinus <michael.albinus@gmx.de>
@@ -2756,6 +2756,11 @@ User is always nil."
   (with-parsed-tramp-file-name
       (if (or dir-p (file-directory-p dir)) dir (file-name-directory dir)) nil
     (tramp-flush-directory-property v localname)))
+
+(defun tramp-handle-file-accessible-directory-p (filename)
+  "Like `file-accessible-directory-p' for Tramp files."
+  (and (file-directory-p filename)
+       (file-executable-p filename)))
 
 (defun tramp-handle-file-exists-p (filename)
   "Like `file-exists-p' for Tramp files."

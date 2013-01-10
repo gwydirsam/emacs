@@ -1,5 +1,5 @@
 /* Utility and Unix shadow routines for GNU Emacs on the Microsoft Windows API.
-   Copyright (C) 1994-1995, 2000-2012  Free Software Foundation, Inc.
+   Copyright (C) 1994-1995, 2000-2013 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -1784,6 +1784,7 @@ unsetenv (const char *name)
   /* It is safe to use 'alloca' with 32K size, since the stack is at
      least 2MB, and we set it to 8MB in the link command line.  */
   var = alloca (name_len + 2);
+  strncpy (var, name, name_len);
   var[name_len++] = '=';
   var[name_len] = '\0';
   return _putenv (var);
@@ -4693,7 +4694,7 @@ acl_to_text (acl_t acl, ssize_t *size)
     GROUP_SECURITY_INFORMATION |
     DACL_SECURITY_INFORMATION;
   char *retval = NULL;
-  ssize_t local_size;
+  ULONG local_size;
   int e = errno;
 
   errno = 0;
@@ -4876,8 +4877,31 @@ acl_set_file (const char *fname, acl_type_t type, acl_t acl)
       retval = 0;
       errno = e;
     }
-  else if (err == ERROR_INVALID_OWNER)
-    errno = EPERM;
+  else if (err == ERROR_INVALID_OWNER || err == ERROR_NOT_ALL_ASSIGNED)
+    {
+      /* Maybe the requested ACL and the one the file already has are
+	 identical, in which case we can silently ignore the
+	 failure.  (And no, Windows doesn't.)  */
+      acl_t current_acl = acl_get_file (fname, ACL_TYPE_ACCESS);
+
+      errno = EPERM;
+      if (current_acl)
+	{
+	  char *acl_from = acl_to_text (current_acl, NULL);
+	  char *acl_to = acl_to_text (acl, NULL);
+
+	  if (acl_from && acl_to && xstrcasecmp (acl_from, acl_to) == 0)
+	    {
+	      retval = 0;
+	      errno = e;
+	    }
+	  if (acl_from)
+	    acl_free (acl_from);
+	  if (acl_to)
+	    acl_free (acl_to);
+	  acl_free (current_acl);
+	}
+    }
   else if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND)
     errno = ENOENT;
 
@@ -6401,7 +6425,21 @@ sys_close (int fd)
 
 		  winsock_inuse--; /* count open sockets */
 		}
-	      delete_child (cp);
+	      /* If the process handle is NULL, it's either a socket
+		 or serial connection, or a subprocess that was
+		 already reaped by reap_subprocess, but whose
+		 resources were not yet freed, because its output was
+		 not fully read yet by the time it was reaped.  (This
+		 usually happens with async subprocesses whose output
+		 is being read by Emacs.)  Otherwise, this process was
+		 not reaped yet, so we set its FD to a negative value
+		 to make sure sys_select will eventually get to
+		 calling the SIGCHLD handler for it, which will then
+		 invoke waitpid and reap_subprocess.  */
+	      if (cp->procinfo.hProcess == NULL)
+		delete_child (cp);
+	      else
+		cp->fd = -1;
 	    }
 	}
     }
