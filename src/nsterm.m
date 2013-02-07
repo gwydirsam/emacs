@@ -1000,11 +1000,8 @@ ns_raise_frame (struct frame *f)
   NSView *view = FRAME_NS_VIEW (f);
   check_ns ();
   block_input ();
-  FRAME_SAMPLE_VISIBILITY (f);
   if (FRAME_VISIBLE_P (f))
-    {
-      [[view window] makeKeyAndOrderFront: NSApp];
-    }
+    [[view window] makeKeyAndOrderFront: NSApp];
   unblock_input ();
 }
 
@@ -1093,7 +1090,8 @@ x_make_frame_visible (struct frame *f)
   if (!FRAME_VISIBLE_P (f))
     {
       EmacsView *view = (EmacsView *)FRAME_NS_VIEW (f);
-      f->async_visible = 1;
+
+      SET_FRAME_VISIBLE (f, 1);
       ns_raise_frame (f);
 
 #ifdef NEW_STYLE_FS
@@ -1123,8 +1121,8 @@ x_make_frame_invisible (struct frame *f)
   NSTRACE (x_make_frame_invisible);
   check_ns ();
   [[view window] orderOut: NSApp];
-  f->async_visible = 0;
-  f->async_iconified = 0;
+  SET_FRAME_VISIBLE (f, 0);
+  SET_FRAME_ICONIFIED (f, 0);
 }
 
 
@@ -1354,7 +1352,9 @@ ns_fullscreen_hook (FRAME_PTR f)
 {
   EmacsView *view = (EmacsView *)FRAME_NS_VIEW (f);
 
-  if (! f->async_visible) return;
+  if (!FRAME_VISIBLE_P (f))
+    return;
+
 #ifndef NEW_STYLE_FS
   if (f->want_fullscreen == FULLSCREEN_BOTH)
     {
@@ -2566,7 +2566,7 @@ ns_get_glyph_string_clip_rect (struct glyph_string *s, NativeRectangle *nr)
    Draw a wavy line under glyph string s. The wave fills wave_height
    pixels from y.
 
-                    x          wave_length = 3
+                    x          wave_length = 2
                                  --
                 y    *   *   *   *   *
                      |* * * * * * * * *
@@ -2576,14 +2576,14 @@ ns_get_glyph_string_clip_rect (struct glyph_string *s, NativeRectangle *nr)
 static void
 ns_draw_underwave (struct glyph_string *s, CGFloat width, CGFloat x)
 {
-  int wave_height = 3, wave_length = 3;
+  int wave_height = 3, wave_length = 2;
   int y, dx, dy, odd, xmax;
   NSPoint a, b;
   NSRect waveClip;
 
   dx = wave_length;
   dy = wave_height - 1;
-  y =  s->ybase + 1;
+  y =  s->ybase - wave_height + 3;
   xmax = x + width;
 
   /* Find and set clipping rectangle */
@@ -2592,10 +2592,10 @@ ns_draw_underwave (struct glyph_string *s, CGFloat width, CGFloat x)
   NSRectClip (waveClip);
 
   /* Draw the waves */
-  a.x = x - ((int)(x) % dx);
+  a.x = x - ((int)(x) % dx) + 0.5;
   b.x = a.x + dx;
   odd = (int)(a.x/dx) % 2;
-  a.y = b.y = y;
+  a.y = b.y = y + 0.5;
 
   if (odd)
     a.y += dy;
@@ -2606,7 +2606,7 @@ ns_draw_underwave (struct glyph_string *s, CGFloat width, CGFloat x)
     {
       [NSBezierPath strokeLineFromPoint:a toPoint:b];
       a.x = b.x, a.y = b.y;
-      b.x += dx, b.y = y + odd*dy;
+      b.x += dx, b.y = y + 0.5 + odd*dy;
       odd = !odd;
     }
 
@@ -2646,6 +2646,7 @@ ns_draw_text_decoration (struct glyph_string *s, struct face *face,
 
           /* If the prev was underlined, match its appearance. */
           if (s->prev && s->prev->face->underline_p
+	      && s->prev->face->underline_type == FACE_UNDER_LINE
               && s->prev->underline_thickness > 0)
             {
               thickness = s->prev->underline_thickness;
@@ -3676,7 +3677,7 @@ ns_set_vertical_scroll_bar (struct window *window,
         }
 
       bar = [[EmacsScroller alloc] initFrame: r window: win];
-      wset_vertical_scroll_bar (window, make_save_value (bar, 0));
+      wset_vertical_scroll_bar (window, make_save_pointer (bar));
     }
   else
     {
@@ -4980,6 +4981,7 @@ not_in_argv (NSString *arg)
 
           emacs_event->code = code;
           EV_TRAILER (theEvent);
+          processingCompose = NO;
           return;
         }
     }
@@ -5170,6 +5172,7 @@ not_in_argv (NSString *arg)
   if (NS_KEYLOG)
     NSLog (@"doCommandBySelector: %@", NSStringFromSelector (aSelector));
 
+  processingCompose = NO;
   if (aSelector == @selector (deleteBackward:))
     {
       /* happens when user backspaces over an ongoing composition:
@@ -5821,13 +5824,14 @@ not_in_argv (NSString *arg)
   NSTRACE (windowDidDeminiaturize);
   if (!emacsframe->output_data.ns)
     return;
-  emacsframe->async_iconified = 0;
-  emacsframe->async_visible   = 1;
+
+  SET_FRAME_ICONIFIED (emacsframe, 0);
+  SET_FRAME_VISIBLE (emacsframe, 1);
   windows_or_buffers_changed++;
 
   if (emacs_event)
     {
-      emacs_event->kind = ICONIFY_EVENT;
+      emacs_event->kind = DEICONIFY_EVENT;
       EV_TRAILER ((id)nil);
     }
 }
@@ -5838,7 +5842,8 @@ not_in_argv (NSString *arg)
   NSTRACE (windowDidExpose);
   if (!emacsframe->output_data.ns)
     return;
-  emacsframe->async_visible = 1;
+
+  SET_FRAME_VISIBLE (emacsframe, 1);
   SET_FRAME_GARBAGED (emacsframe);
 
   if (send_appdefined)
@@ -5852,8 +5857,8 @@ not_in_argv (NSString *arg)
   if (!emacsframe->output_data.ns)
     return;
 
-  emacsframe->async_iconified = 1;
-  emacsframe->async_visible = 0;
+  SET_FRAME_ICONIFIED (emacsframe, 1);
+  SET_FRAME_VISIBLE (emacsframe, 0);
 
   if (emacs_event)
     {

@@ -116,9 +116,6 @@ Lisp_Object minibuf_selected_window;
 /* Hook run at end of temp_output_buffer_show.  */
 static Lisp_Object Qtemp_buffer_show_hook;
 
-/* Incremented for each window created.  */
-static int sequence_number;
-
 /* Nonzero after init_window_once has finished.  */
 static int window_initialized;
 
@@ -286,6 +283,9 @@ adjust_window_count (struct window *w, int arg)
 	b = b->base_buffer;
       b->window_count += arg;
       eassert (b->window_count >= 0);
+      /* These should be recalculated by redisplay code.  */
+      w->window_end_valid = 0;
+      w->base_line_pos = 0;
     }
 }
 
@@ -1436,7 +1436,7 @@ window were selected.
 
 Note that, when WINDOW is selected, the value returned is the same as
 that returned by `point' for WINDOW's buffer.  It would be more strictly
-correct to return the `top-level' value of `point', outside of any
+correct to return the top-level value of `point', outside of any
 `save-excursion' forms.  But that is hard to define.  */)
   (Lisp_Object window)
 {
@@ -1489,17 +1489,8 @@ if it isn't already recorded.  */)
   CHECK_BUFFER (buf);
   b = XBUFFER (buf);
 
-#if 0 /* This change broke some things.  We should make it later.  */
-  /* If we don't know the end position, return nil.
-     The user can compute it with vertical-motion if he wants to.
-     It would be nicer to do it automatically,
-     but that's so slow that it would probably bother people.  */
-  if (NILP (w->window_end_valid))
-    return Qnil;
-#endif
-
   if (! NILP (update)
-      && (windows_or_buffers_changed || NILP (w->window_end_valid))
+      && (windows_or_buffers_changed || !w->window_end_valid)
       && !noninteractive)
     {
       struct text_pos startp;
@@ -1706,7 +1697,7 @@ Return nil if window display is not up-to-date.  In that case, use
   b = XBUFFER (w->buffer);
 
   /* Fail if current matrix is not up-to-date.  */
-  if (NILP (w->window_end_valid)
+  if (!w->window_end_valid
       || current_buffer->clip_changed
       || current_buffer->prevent_redisplay_optimizations_p
       || w->last_modified < BUF_MODIFF (b)
@@ -2038,7 +2029,7 @@ replace_window (Lisp_Object old, Lisp_Object new, int setflag)
       n->pseudo_window_p = 0;
       wset_window_end_vpos (n, make_number (0));
       wset_window_end_pos (n, make_number (0));
-      wset_window_end_valid (n, Qnil);
+      n->window_end_valid = 0;
       n->frozen_window_start_p = 0;
     }
 
@@ -2238,7 +2229,6 @@ candidate_window_p (Lisp_Object window, Lisp_Object owindow, Lisp_Object minibuf
     }
   else if (EQ (all_frames, Qvisible))
     {
-      FRAME_SAMPLE_VISIBILITY (f);
       candidate_p = FRAME_VISIBLE_P (f)
 	&& (FRAME_TERMINAL (XFRAME (w->frame))
 	    == FRAME_TERMINAL (XFRAME (selected_frame)));
@@ -2246,7 +2236,6 @@ candidate_window_p (Lisp_Object window, Lisp_Object owindow, Lisp_Object minibuf
     }
   else if (INTEGERP (all_frames) && XINT (all_frames) == 0)
     {
-      FRAME_SAMPLE_VISIBILITY (f);
       candidate_p = (FRAME_VISIBLE_P (f) || FRAME_ICONIFIED_P (f)
 #ifdef HAVE_X_WINDOWS
 		     /* Yuck!!  If we've just created the frame and the
@@ -2973,7 +2962,7 @@ window-start value is reasonable when this function is called.  */)
 	  pos = *vmotion (startpos, -top, w);
 
 	  set_marker_both (w->start, w->buffer, pos.bufpos, pos.bytepos);
-	  wset_window_end_valid (w, Qnil);
+	  w->window_end_valid = 0;
 	  w->start_at_line_beg = (pos.bytepos == BEGV_BYTE
 				    || FETCH_BYTE (pos.bytepos - 1) == '\n');
 	  /* We need to do this, so that the window-scroll-functions
@@ -3189,7 +3178,7 @@ set_window_buffer (Lisp_Object window, Lisp_Object buffer, int run_hooks_p, int 
   wset_window_end_pos (w, make_number (0));
   wset_window_end_vpos (w, make_number (0));
   memset (&w->last_cursor, 0, sizeof w->last_cursor);
-  wset_window_end_valid (w, Qnil);
+
   if (!(keep_margins_p && samebuf))
     { /* If we're not actually changing the buffer, don't reset hscroll and
 	 vscroll.  This case happens for example when called from
@@ -3438,8 +3427,6 @@ make_parent_window (Lisp_Object window, int horflag)
   adjust_window_count (p, 1);
   XSETWINDOW (parent, p);
 
-  p->sequence_number = ++sequence_number;
-
   replace_window (window, parent, 1);
 
   wset_next (o, Qnil);
@@ -3488,7 +3475,7 @@ make_window (void)
   w->nrows_scale_factor = w->ncols_scale_factor = 1;
   w->phys_cursor_type = -1;
   w->phys_cursor_width = -1;
-  w->sequence_number = ++sequence_number;
+  w->column_number_displayed = -1;
 
   /* Reset window_list.  */
   Vwindow_list = Qnil;
@@ -3958,7 +3945,7 @@ set correctly.  See the code of `split-window' for how this is done.  */)
       wset_next (o, new);
     }
 
-  wset_window_end_valid (n, Qnil);
+  n->window_end_valid = 0;
   memset (&n->last_cursor, 0, sizeof n->last_cursor);
 
   /* Get special geometry settings from reference window.  */
@@ -5368,7 +5355,7 @@ and redisplay normally--don't erase and redraw the frame.  */)
 
   /* Set the new window start.  */
   set_marker_both (w->start, w->buffer, charpos, bytepos);
-  wset_window_end_valid (w, Qnil);
+  w->window_end_valid = 0;
 
   w->optional_new_start = 1;
 
@@ -6319,7 +6306,7 @@ display marginal areas and the text area.  */)
       adjust_window_margins (w);
 
       clear_glyph_matrix (w->current_matrix);
-      wset_window_end_valid (w, Qnil);
+      w->window_end_valid = 0;
 
       ++windows_or_buffers_changed;
       adjust_glyphs (XFRAME (WINDOW_FRAME (w)));
@@ -6389,7 +6376,7 @@ Fourth parameter HORIZONTAL-TYPE is currently unused.  */)
       adjust_window_margins (w);
 
       clear_glyph_matrix (w->current_matrix);
-      wset_window_end_valid (w, Qnil);
+      w->window_end_valid = 0;
 
       ++windows_or_buffers_changed;
       adjust_glyphs (XFRAME (WINDOW_FRAME (w)));
@@ -6793,7 +6780,8 @@ same combination.
 
 Other values are reserved for future use.
 
-This variable takes no effect if `window-combination-limit' is non-nil.  */);
+This variable takes no effect if the variable `window-combination-limit' is
+non-nil.  */);
   Vwindow_combination_resize = Qnil;
 
   DEFVAR_LISP ("window-combination-limit", Vwindow_combination_limit,

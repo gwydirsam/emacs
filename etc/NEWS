@@ -32,6 +32,13 @@ configure option `--without-acl'.
 * Changes in Emacs 24.4
 
 +++
+** `apropos-variable' is now `apropos-user-option'
+`apropos-user-option' shows all user options while `apropos-variable'
+shows all variables.  When called with a universal prefix argument,
+the two commands swap their behaviors.  When `apropos-do-all' is
+non-nil, they output the same results.
+
++++
 ** `eval-defun' on an already defined defcustom calls the :set function,
 if there is one.
 
@@ -51,6 +58,11 @@ entries of a file.  On GNU/Linux, the POSIX ACL interface is used via
 libacl.  On MS-Windows, the NT Security APIs are used to emulate the
 POSIX ACL interfaces.
 
+** New option `scroll-bar-adjust-thumb-portion'.
+Available only on X, this option allows to control over-scrolling
+using the scroll bar (i.e. dragging the thumb down even when the end
+of the buffer is visible).
+
 * Editing Changes in Emacs 24.4
 
 ** New commands `toggle-frame-fullscreen' and `toggle-frame-maximized',
@@ -58,6 +70,17 @@ bound to <f11> and M-<f10>, respectively.
 
 
 * Changes in Specialized Modes and Packages in Emacs 24.4
+
+** Delphi mode is now called OPascal mode.
+*** All delphi-* variables and functions have been renamed to opascal-*.
+*** `delphi-newline-always-indents' is not supported any more
+use `electric-indent-mode' instead.
+*** `delphi-tab' is gone, replaced by `indent-for-tab-command'.
+
+** jit-lock-debug-mode lets you use the debuggers on code run via jit-lock.
+
+** completing-read-multiple's separator can now be a regexp.
+The default separator is changed to allow surrounding spaces around the comma.
 
 ** Battery
 
@@ -84,6 +107,8 @@ Nil, the default value, means to always use the Gregorian calendar.
 The value (YEAR MONTH DAY) means to start using the Gregorian calendar
 on the given date.
 
+*** Support for ISO 8601 dates.
+
 ** ERC
 
 *** New option `erc-accidental-paste-threshold-seconds'.
@@ -94,6 +119,18 @@ amounts of data into the ERC input.
 *** key bindings to navigate through and select the completions.
 *** The icomplete-separator is customizable, and its default has changed.
 *** Removed icomplete-show-key-bindings.
+
+** Image mode
+
+*** New commands `n' (`image-next-file') and `p' (`image-previous-file')
+visit the next image file and the previous image file in the same
+directory, respectively.
+
+---
+*** The command `image-mode-fit-frame' deletes other windows.
+When toggling, it restores the frame's previous window configuration.
+It also has an optional frame argument, which can be used by Lisp
+callers to fit the image to a frame other than the selected frame.
 
 ** Isearch
 
@@ -127,6 +164,11 @@ New features include:
 when its arg ADJACENT is non-nil (when called interactively with C-u C-u)
 it works like the utility `uniq'.  Otherwise by default it deletes
 duplicate lines everywhere in the region without regard to adjacency.
+
+** New `cycle-spacing' command allows cycling between having just one
+space, no spaces, or reverting to the original spacing.  Like
+`just-one-space' command it can handle or ignore newlines and
+leave different number of spaces.
 
 ** Tramp
 +++
@@ -198,6 +240,9 @@ property using the supplied face spec.
 *** Face specs set via Custom themes now replace the `defface' spec
 rather than inheriting from it (as do face specs set via Customize).
 
+*** New face characteristic (supports :underline (:style wave))
+specifies whether or not the terminal can display a wavy line.
+
 ** time-to-seconds is not obsolete any more.
 ** New function special-form-p.
 ** Docstrings can be made dynamic by adding a `dynamic-docstring-function'
@@ -246,9 +291,9 @@ features (image support, etc.) that are normally enabled by default.
 
 ** New configure option `--enable-gcc-warnings' (for developing/debugging
 Emacs).  If building with GCC, this enables compile-time checks that
-warn about possibly-questionable C code.  On a recent GNU system there
-should be no warnings; on older and on non-GNU systems the generated
-warnings may be useful.
+warn/give errors about possibly-questionable C code.  On a recent GNU
+system there should be no warnings; on older and on non-GNU systems
+the results may be useful to developers.
 
 ** The configure option `--enable-use-lisp-union-type' has been
 renamed to `--enable-check-lisp-object-type', as the resulting
@@ -675,6 +720,12 @@ see the `apropos' Custom group for details.
 
 *** Option `Buffer-menu-buffer+size-width' is now obsolete.
 Use `Buffer-menu-name-width' and `Buffer-menu-size-width' instead.
+
+** Calc
+
+*** Algebraic simplification mode is now the default.
+To restrict to the limited simplifications given by the former
+default simplification mode, use `m I'.
 
 ** Calendar
 
@@ -1604,6 +1655,23 @@ Use the variable `bibtex-dialect' to select different BibTeX dialects.
 
 *** The default browser used by the package is now the "xdg-open" program,
 on platforms that support it.  This calls your desktop's preferred browser.
+
+** Calc
+
+*** Support for musical notes.
+
+*** Support for logarithmic units.
+
+*** No longer uses the tex prefix for TeX specific unit names when
+using TeX or LaTeX mode.
+
+*** New option to highlight selections using faces.
+
+*** `calc-histogram' has the option of using a vector to determine the bins.
+
+*** New "O" option prefix.
+
+*** Use the "O" prefix to "d r" (`calc-radix') to turn on twos-complement mode.
 
 ** Calendar, Diary, and Appt
 

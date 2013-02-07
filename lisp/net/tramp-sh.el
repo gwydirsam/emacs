@@ -1452,23 +1452,22 @@ of."
 (defun tramp-set-file-uid-gid (filename &optional uid gid)
   "Set the ownership for FILENAME.
 If UID and GID are provided, these values are used; otherwise uid
-and gid of the corresponding user is taken.  Both parameters must be integers."
+and gid of the corresponding user is taken.  Both parameters must
+be non-negative integers."
   ;; Modern Unices allow chown only for root.  So we might need
   ;; another implementation, see `dired-do-chown'.  OTOH, it is mostly
   ;; working with su(do)? when it is needed, so it shall succeed in
   ;; the majority of cases.
   ;; Don't modify `last-coding-system-used' by accident.
-  (let ((last-coding-system-used last-coding-system-used)
-	(uid (and (numberp uid) (round uid)))
-	(gid (and (numberp gid) (round gid))))
+  (let ((last-coding-system-used last-coding-system-used))
     (if (file-remote-p filename)
 	(with-parsed-tramp-file-name filename nil
 	  (if (and (zerop (user-uid)) (tramp-local-host-p v))
 	      ;; If we are root on the local host, we can do it directly.
 	      (tramp-set-file-uid-gid localname uid gid)
-	    (let ((uid (or (and (integerp uid) uid)
+	    (let ((uid (or (and (natnump uid) uid)
 			   (tramp-get-remote-uid v 'integer)))
-		  (gid (or (and (integerp gid) gid)
+		  (gid (or (and (natnump gid) gid)
 			   (tramp-get-remote-gid v 'integer))))
 	      (tramp-send-command
 	       v (format
@@ -1477,8 +1476,8 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
 
       ;; We handle also the local part, because there doesn't exist
       ;; `set-file-uid-gid'.  On W32 "chown" might not work.
-      (let ((uid (or (and (integerp uid) uid) (tramp-get-local-uid 'integer)))
-	    (gid (or (and (integerp gid) gid) (tramp-get-local-gid 'integer))))
+      (let ((uid (or (and (natnump uid) uid) (tramp-get-local-uid 'integer)))
+	    (gid (or (and (natnump gid) gid) (tramp-get-local-gid 'integer))))
 	(tramp-compat-call-process
 	 "chown" nil nil nil
          (format "%d:%d" uid gid) (tramp-shell-quote-argument filename))))))
@@ -1550,31 +1549,31 @@ and gid of the corresponding user is taken.  Both parameters must be integers."
       (when (and (tramp-remote-acl-p v)
 		 (tramp-send-command-and-check
 		  v (format
-		     "getfacl -acs %s 2>/dev/null"
+		     "getfacl -ac %s 2>/dev/null"
 		     (tramp-shell-quote-argument localname))))
 	(with-current-buffer (tramp-get-connection-buffer v)
 	  (goto-char (point-max))
 	  (delete-blank-lines)
 	  (when (> (point-max) (point-min))
-	    (substring-no-properties (buffer-string))))))))
+	    (tramp-compat-funcall
+	     'substring-no-properties (buffer-string))))))))
 
 (defun tramp-sh-handle-set-file-acl (filename acl-string)
   "Like `set-file-acl' for Tramp files."
-  (with-parsed-tramp-file-name filename nil
-    (when (tramp-remote-acl-p v)
-      (condition-case nil
-	  (when (stringp acl-string)
-	    (tramp-set-file-property v localname "file-acl" acl-string)
-	    (dolist (line (split-string acl-string nil t) t)
-	      (unless (tramp-send-command-and-check
-		       v (format
-			  "setfacl -m %s %s"
-			  line (tramp-shell-quote-argument localname)))
-		(error nil))))
-	;; In case of errors, we return `nil'.
-	(error
-	 (tramp-set-file-property v localname "file-acl" 'undef)
-	 nil)))))
+  (with-parsed-tramp-file-name (expand-file-name filename) nil
+    (if (and (stringp acl-string) (tramp-remote-acl-p v)
+	     (progn
+	       (tramp-send-command
+		v (format "setfacl --set-file=- %s <<'EOF'\n%s\nEOF\n"
+			  (tramp-shell-quote-argument localname) acl-string))
+	       (tramp-send-command-and-check v nil)))
+	;; Success.
+	(progn
+	  (tramp-set-file-property v localname "file-acl" acl-string)
+	  t)
+      ;; In case of errors, we return `nil'.
+      (tramp-set-file-property v localname "file-acl-string" 'undef)
+      nil)))
 
 ;; Simple functions using the `test' command.
 
@@ -2825,6 +2824,8 @@ the result will be a local, non-Tramp, filename."
 
       (with-current-buffer (tramp-get-connection-buffer v)
 	(unwind-protect
+	    ;; We catch this event.  Otherwise, `start-process' could
+	    ;; be called on the local host.
 	    (save-excursion
 	      (save-restriction
 		;; Activate narrowing in order to save BUFFER
@@ -2838,31 +2839,32 @@ the result will be a local, non-Tramp, filename."
 		  (narrow-to-region (point-max) (point-max))
 		  ;; We call `tramp-maybe-open-connection', in order
 		  ;; to cleanup the prompt afterwards.
-		  (tramp-maybe-open-connection v)
-		  (widen)
-		  (delete-region mark (point))
-		  (narrow-to-region (point-max) (point-max))
-		  ;; Now do it.
-		  (if command
-		      ;; Send the command.
-		      (tramp-send-command v command nil t) ; nooutput
-		    ;; Check, whether a pty is associated.
-		    (unless (tramp-compat-process-get
-			     (tramp-get-connection-process v) 'remote-tty)
-		      (tramp-error
-		       v 'file-error
-		       "pty association is not supported for `%s'" name))))
-		(let ((p (tramp-get-connection-process v)))
-		  ;; Set query flag for this process.  We ignore errors,
-		  ;; because the process could have finished already.
-		  (ignore-errors
-		    (tramp-compat-set-process-query-on-exit-flag p t))
-		  ;; Return process.
-		  p)))
+		  (catch 'suppress
+		    (tramp-maybe-open-connection v)
+		    (widen)
+		    (delete-region mark (point))
+		    (narrow-to-region (point-max) (point-max))
+		    ;; Now do it.
+		    (if command
+			;; Send the command.
+			(tramp-send-command v command nil t) ; nooutput
+		      ;; Check, whether a pty is associated.
+		      (unless (tramp-compat-process-get
+			       (tramp-get-connection-process v) 'remote-tty)
+			(tramp-error
+			 v 'file-error
+			 "pty association is not supported for `%s'" name))))
+		  (let ((p (tramp-get-connection-process v)))
+		    ;; Set query flag for this process.  We ignore errors,
+		    ;; because the process could have finished already.
+		    (ignore-errors
+		      (tramp-compat-set-process-query-on-exit-flag p t))
+		    ;; Return process.
+		    p))))
 
 	  ;; Save exit.
 	  (if (string-match tramp-temp-buffer-name (buffer-name))
-	      (progn
+	      (ignore-errors
 		(set-process-buffer (tramp-get-connection-process v) nil)
 		(kill-buffer (current-buffer)))
 	    (set-buffer-modified-p bmp))
@@ -4207,6 +4209,9 @@ Goes through the list `tramp-inline-compress-commands'."
 	(tramp-message
 	 vec 2 "Couldn't find an inline transfer compress command")))))
 
+(defvar tramp-gw-tunnel-method)
+(defvar tramp-gw-socks-method)
+
 (defun tramp-compute-multi-hops (vec)
   "Expands VEC according to `tramp-default-proxies-alist'.
 Gateway hops are already opened."
@@ -4267,10 +4272,11 @@ Gateway hops are already opened."
 	    (setq choices tramp-default-proxies-alist)))))
 
     ;; Handle gateways.
-    (when (string-match
-	   (format
-	    "^\\(%s\\|%s\\)$" tramp-gw-tunnel-method tramp-gw-socks-method)
-	   (tramp-file-name-method (car target-alist)))
+    (when (and (boundp 'tramp-gw-tunnel-method) (boundp 'tramp-gw-socks-method)
+	       (string-match
+		(format
+		 "^\\(%s\\|%s\\)$" tramp-gw-tunnel-method tramp-gw-socks-method)
+		(tramp-file-name-method (car target-alist))))
       (let ((gw (pop target-alist))
 	    (hop (pop target-alist)))
 	;; Is the method prepared for gateways?
@@ -4351,7 +4357,7 @@ connection if a previous connection has died for some reason."
 			      (car tramp-current-connection)))
 		  (> (tramp-time-diff
 		      (current-time) (cdr tramp-current-connection))
-		     5))
+		     (or tramp-connection-min-time-diff 0)))
 	(throw 'suppress 'suppress))
 
       ;; If too much time has passed since last command was sent, look
@@ -4665,7 +4671,7 @@ raises an error."
 		  command (buffer-string))))))))
 
 (defun tramp-convert-file-attributes (vec attr)
-  "Convert file-attributes ATTR generated by perl script, stat or ls.
+  "Convert `file-attributes' ATTR generated by perl script, stat or ls.
 Convert file mode bits to string and set virtual device number.
 Return ATTR."
   (when attr
@@ -4673,6 +4679,17 @@ Return ATTR."
     (when (stringp (car attr))
       (while (string-match tramp-color-escape-sequence-regexp (car attr))
 	(setcar attr (replace-match "" nil nil (car attr)))))
+    ;; Convert uid and gid.  Use -1 as indication of unusable value.
+    (when (and (numberp (nth 2 attr)) (< (nth 2 attr) 0))
+      (setcar (nthcdr 2 attr) -1))
+    (when (and (floatp (nth 2 attr))
+               (<= (nth 2 attr) (tramp-compat-most-positive-fixnum)))
+      (setcar (nthcdr 2 attr) (round (nth 2 attr))))
+    (when (and (numberp (nth 3 attr)) (< (nth 3 attr) 0))
+      (setcar (nthcdr 3 attr) -1))
+    (when (and (floatp (nth 3 attr))
+               (<= (nth 3 attr) (tramp-compat-most-positive-fixnum)))
+      (setcar (nthcdr 3 attr) (round (nth 3 attr))))
     ;; Convert last access time.
     (unless (listp (nth 4 attr))
       (setcar (nthcdr 4 attr)
@@ -5170,34 +5187,6 @@ function cell is returned to be applied on a buffer."
 	  (format "%s >%%s" coding))
 	 (t
 	  (format "%s <%%s" coding)))))))
-
-;;; Integration of eshell.el:
-
-(eval-when-compile
-  (defvar eshell-path-env))
-
-;; eshell.el keeps the path in `eshell-path-env'.  We must change it
-;; when `default-directory' points to another host.
-(defun tramp-eshell-directory-change ()
-  "Set `eshell-path-env' to $PATH of the host related to `default-directory'."
-  (setq eshell-path-env
-	(if (file-remote-p default-directory)
-	    (with-parsed-tramp-file-name default-directory nil
-	      (mapconcat
-	       'identity
-	       (tramp-get-remote-path v)
-	       ":"))
-	  (getenv "PATH"))))
-
-(eval-after-load "esh-util"
-  '(progn
-     (tramp-eshell-directory-change)
-     (add-hook 'eshell-directory-change-hook
-	       'tramp-eshell-directory-change)
-     (add-hook 'tramp-unload-hook
-	       (lambda ()
-		 (remove-hook 'eshell-directory-change-hook
-			      'tramp-eshell-directory-change)))))
 
 (add-hook 'tramp-unload-hook
 	  (lambda ()

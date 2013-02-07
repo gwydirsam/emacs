@@ -2147,7 +2147,7 @@ In case the execution fails, an error is signaled. */)
   [NSApp postEvent: nxev atStart: NO];
 
   // If there are other events, the event loop may exit.  Keep running
-  // until the script has been handeled.  */
+  // until the script has been handled.  */
   while (! NILP (as_script))
     [NSApp run];
 

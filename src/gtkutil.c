@@ -983,7 +983,7 @@ xg_frame_set_char_size (FRAME_PTR f, int cols, int rows)
      size as fast as possible.
      For unmapped windows, we can set rows/cols.  When
      the frame is mapped again we will (hopefully) get the correct size.  */
-  if (f->async_visible)
+  if (FRAME_VISIBLE_P (f))
     {
       /* Must call this to flush out events */
       (void)gtk_events_pending ();
@@ -1650,8 +1650,7 @@ xg_dialog_response_cb (GtkDialog *w,
 static Lisp_Object
 pop_down_dialog (Lisp_Object arg)
 {
-  struct Lisp_Save_Value *p = XSAVE_VALUE (arg);
-  struct xg_dialog_data *dd = (struct xg_dialog_data *) p->pointer;
+  struct xg_dialog_data *dd = XSAVE_POINTER (arg, 0);
 
   block_input ();
   if (dd->w) gtk_widget_destroy (dd->w);
@@ -1717,7 +1716,7 @@ xg_dialog_run (FRAME_PTR f, GtkWidget *w)
   g_signal_connect (G_OBJECT (w), "delete-event", G_CALLBACK (gtk_true), NULL);
   gtk_widget_show (w);
 
-  record_unwind_protect (pop_down_dialog, make_save_value (&dd, 0));
+  record_unwind_protect (pop_down_dialog, make_save_pointer (&dd));
 
   (void) xg_maybe_add_timer (&dd);
   g_main_loop_run (dd.loop);
@@ -3795,13 +3794,17 @@ xg_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar,
 
       adj = gtk_range_get_adjustment (GTK_RANGE (wscroll));
 
-      /* We do the same as for MOTIF in xterm.c, assume 30 chars per line
-         rather than the real portion value.  This makes the thumb less likely
-         to resize and that looks better.  */
-      portion = WINDOW_TOTAL_LINES (XWINDOW (bar->window)) * 30;
-      /* When the thumb is at the bottom, position == whole.
-         So we need to increase `whole' to make space for the thumb.  */
-      whole += portion;
+      if (scroll_bar_adjust_thumb_portion_p)
+        {
+          /* We do the same as for MOTIF in xterm.c, use 30 chars per
+             line rather than the real portion value.  This makes the
+             thumb less likely to resize and that looks better.  */
+          portion = WINDOW_TOTAL_LINES (XWINDOW (bar->window)) * 30;
+
+          /* When the thumb is at the bottom, position == whole.
+             So we need to increase `whole' to make space for the thumb.  */
+          whole += portion;
+        }
 
       if (whole <= 0)
         top = 0, shown = 1;
@@ -5041,7 +5044,9 @@ xg_initialize (void)
                                 "cancel", 0);
   update_theme_scrollbar_width ();
 
+#ifdef HAVE_FREETYPE
   x_last_font_name = NULL;
+#endif
 }
 
 #endif /* USE_GTK */
